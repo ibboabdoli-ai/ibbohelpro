@@ -1,1 +1,1 @@
-import './admin.ts';
+import './admin-main.ts';

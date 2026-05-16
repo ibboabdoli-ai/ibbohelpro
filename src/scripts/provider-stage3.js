@@ -1,1 +1,1 @@
-import './provider-stage3.ts';
+import './provider-stage3-main.ts';
