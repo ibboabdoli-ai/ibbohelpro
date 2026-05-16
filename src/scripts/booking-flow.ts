@@ -30,7 +30,9 @@ const bookingKey = 'cleanai_booking_draft';
 const bookingStartedKey = 'cleanai_booking_started';
 const guidedPromptShownKey = 'cleanai_guided_prompt_shown';
 const nlpMemoryKey = 'cleanai_nlp_memory';
+const submittedBookingKey = 'cleanai_submitted_booking_id';
 const requiredFields: Array<keyof BookingDraft> = ['category', 'address', 'propertySize', 'frequency', 'dateTime'];
+let submitInFlight = false;
 
 function readBookingDraft(): BookingDraft {
   try {
@@ -107,13 +109,21 @@ function isSv() {
 }
 
 function categoryLabel(category?: string) {
-  const sv = isSv();
   const labels: Record<string, string> = {
-    home: sv ? 'Privat hem' : 'Private home',
-    office: sv ? 'Kontor' : 'Office',
-    hotel: sv ? 'Hotell' : 'Hotel'
+    home: isSv() ? 'Privat hem' : 'Private home',
+    office: isSv() ? 'Kontor' : 'Office',
+    hotel: isSv() ? 'Hotell' : 'Hotel'
   };
   return labels[category || ''] || category || '—';
+}
+
+function frequencyLabel(frequency?: string) {
+  const labels: Record<string, string> = {
+    'One-time': isSv() ? 'Engång' : 'One-time',
+    Weekly: isSv() ? 'Veckovis' : 'Weekly',
+    Biweekly: isSv() ? 'Varannan vecka' : 'Biweekly'
+  };
+  return labels[frequency || ''] || frequency || '—';
 }
 
 function estimate(draft: BookingDraft) {
@@ -136,25 +146,26 @@ function renderSummary() {
 
   const price = estimate(draft);
   const missing = getMissingFields(draft);
+  const submittedId = localStorage.getItem(submittedBookingKey);
 
   summary.classList.remove('hidden');
   summary.innerHTML = `
     <div class="space-y-3">
       <div class="flex items-center justify-between gap-3">
         <p class="text-sm font-semibold text-white">${isSv() ? 'Bokningsutkast' : 'Booking Draft'}</p>
-        <span class="pill">${missing.length ? (isSv() ? 'Ej komplett' : 'Incomplete') : (isSv() ? 'Klar' : 'Ready')}</span>
+        <span class="pill">${submittedId ? (isSv() ? 'Skickad' : 'Submitted') : missing.length ? (isSv() ? 'Ej komplett' : 'Incomplete') : (isSv() ? 'Klar' : 'Ready')}</span>
       </div>
       ${row(isSv() ? 'Kategori' : 'Category', categoryLabel(draft.category))}
       ${row(isSv() ? 'Adress' : 'Address', draft.address || '—')}
       ${row(isSv() ? 'Storlek' : 'Size', draft.propertySize || '—')}
-      ${row(isSv() ? 'Frekvens' : 'Frequency', draft.frequency || '—')}
+      ${row(isSv() ? 'Frekvens' : 'Frequency', frequencyLabel(draft.frequency))}
       ${row(isSv() ? 'Tid' : 'Schedule', draft.dateTime || '—')}
       ${row(isSv() ? 'Tillägg' : 'Extras', draft.extras?.length ? draft.extras.join(', ') : '—')}
       <div class="rounded-2xl bg-emerald-500/10 p-3 text-sm text-emerald-100">
         <p class="font-semibold">€${price.total.toFixed(2)}</p>
         <p class="text-xs text-emerald-200">${price.hours} ${isSv() ? 'uppskattade timmar' : 'estimated hours'}</p>
       </div>
-      ${missing.length ? '' : `<button id="booking-flow-submit" class="btn-primary mt-2 w-full rounded-2xl py-3 text-sm font-semibold">${isSv() ? 'Skicka bokningsutkast' : 'Submit booking draft'}</button>`}
+      ${submittedId ? `<div class="rounded-2xl bg-white/5 p-3 text-sm text-emerald-200">${isSv() ? 'Bokningen är redan skickad' : 'Booking already submitted'}: ${escapeHTML(submittedId)}</div>` : missing.length ? '' : `<button id="booking-flow-submit" class="btn-primary mt-2 w-full rounded-2xl py-3 text-sm font-semibold">${isSv() ? 'Skicka bokningsutkast' : 'Submit booking draft'}</button>`}
     </div>
   `;
 
@@ -214,15 +225,14 @@ function addLocationButton() {
 }
 
 function questionForField(field: keyof BookingDraft) {
-  const sv = isSv();
   const copy: Record<string, string> = {
-    category: sv ? 'Vad vill du boka: privat hem, kontor eller hotell?' : 'What do you need cleaned: private home, office, or hotel?',
-    address: sv ? 'Vilken adress eller stad ska städaren åka till? Du kan också välja “Använd min plats”.' : 'What address or city should the cleaner go to? You can also choose “Use my current location”.',
-    propertySize: sv ? 'Hur stor är ytan? Till exempel 2–3 rum eller 80 kvm.' : 'How large is the property? For example, 2–3 bedrooms or 80 sqm.',
-    frequency: sv ? 'Hur ofta vill du ha städning: engång, veckovis eller varannan vecka?' : 'How often do you want cleaning: one-time, weekly, or biweekly?',
-    dateTime: sv ? 'Vilken dag och tid passar dig?' : 'Which day and time works for you?'
+    category: isSv() ? 'Vad vill du boka: privat hem, kontor eller hotell?' : 'What do you need cleaned: private home, office, or hotel?',
+    address: isSv() ? 'Vilken adress eller stad ska städaren åka till? Du kan också välja “Använd min plats”.' : 'What address or city should the cleaner go to? You can also choose “Use my current location”.',
+    propertySize: isSv() ? 'Hur stor är ytan? Till exempel 2–3 rum eller 80 kvm.' : 'How large is the property? For example, 2–3 bedrooms or 80 sqm.',
+    frequency: isSv() ? 'Hur ofta vill du ha städning: engång, veckovis eller varannan vecka?' : 'How often do you want cleaning: one-time, weekly, or biweekly?',
+    dateTime: isSv() ? 'Vilken dag och tid passar dig?' : 'Which day and time works for you?'
   };
-  return copy[field] || (sv ? 'Vad vill du lägga till?' : 'What would you like to add?');
+  return copy[field] || (isSv() ? 'Vad vill du lägga till?' : 'What would you like to add?');
 }
 
 function quickRepliesForField(field: keyof BookingDraft) {
@@ -256,7 +266,6 @@ function quickRepliesForField(field: keyof BookingDraft) {
     addQuickReply(isSv() ? 'Imorgon 09:00' : 'Tomorrow 09:00', { dateTime: isSv() ? 'Imorgon 09:00' : 'Tomorrow 09:00' });
     addQuickReply(isSv() ? 'Söndag 09:00' : 'Sunday 09:00', { dateTime: isSv() ? 'Söndag 09:00' : 'Sunday 09:00' });
     addQuickReply(isSv() ? 'Nästa vecka' : 'Next week', { dateTime: isSv() ? 'Nästa vecka' : 'Next week' });
-    return;
   }
 }
 
@@ -266,8 +275,7 @@ function inferPatchFromCurrentField(message: string): BookingDraft {
   const learned = memoryPatch(value);
   if (Object.keys(learned).length) return learned;
 
-  const draft = readBookingDraft();
-  const nextField = getMissingFields(draft)[0];
+  const nextField = getMissingFields(readBookingDraft())[0];
   const lower = normalize(value);
 
   if (nextField === 'category') {
@@ -275,17 +283,14 @@ function inferPatchFromCurrentField(message: string): BookingDraft {
     if (/hotel|hotell/.test(lower)) return { category: 'hotel' };
     return { category: 'home' };
   }
-
   if (nextField === 'address') return { address: value.slice(0, 160) };
   if (nextField === 'propertySize') return { propertySize: value.slice(0, 120) };
-
   if (nextField === 'frequency') {
     if (/weekly|veckovis|varje vecka/.test(lower)) return { frequency: 'Weekly' };
     if (/biweekly|varannan/.test(lower)) return { frequency: 'Biweekly' };
     if (/one|once|engang|engång/.test(lower)) return { frequency: 'One-time' };
     return { frequency: value.slice(0, 80) };
   }
-
   if (nextField === 'dateTime') return { dateTime: value.slice(0, 120) };
   if (/deep clean|djuprengoring|djuprengöring/.test(lower)) return { extras: ['Deep clean'] };
   return { notes: value.slice(0, 500) };
@@ -298,8 +303,8 @@ function rememberPatch(patch: BookingDraft, phrase: string) {
 }
 
 function askNextQuestion() {
-  const draft = readBookingDraft();
-  const missing = getMissingFields(draft);
+  if (localStorage.getItem(submittedBookingKey)) return;
+  const missing = getMissingFields(readBookingDraft());
   if (!missing.length) {
     clearQuickReplies();
     addQuickReply(isSv() ? 'Lägg till djuprengöring' : 'Add deep clean', { extras: ['Deep clean'] });
@@ -353,11 +358,22 @@ async function requestLocationAddress() {
 }
 
 async function submitBookingDraft() {
+  const existingId = localStorage.getItem(submittedBookingKey);
+  if (existingId) {
+    appendMessage(`${isSv() ? 'Bokningen är redan skickad. Boknings-ID' : 'Booking already submitted. Booking ID'}: ${existingId}`, 'assistant', 'Ready');
+    renderSummary();
+    return;
+  }
+  if (submitInFlight) return;
+
   const draft = readBookingDraft();
   if (getMissingFields(draft).length) {
     askNextQuestion();
     return;
   }
+
+  submitInFlight = true;
+  document.getElementById('booking-flow-submit')?.setAttribute('disabled', 'true');
   try {
     const response = await fetch('/api/bookings/create', {
       method: 'POST',
@@ -366,10 +382,16 @@ async function submitBookingDraft() {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Booking submit failed');
-    appendMessage(`${isSv() ? 'Bokning skickad. Boknings-ID' : 'Booking submitted. Booking ID'}: ${result.bookingId || 'created'}`, 'assistant', 'Ready');
+    const bookingId = result.bookingId || 'created';
+    localStorage.setItem(submittedBookingKey, bookingId);
+    clearQuickReplies();
+    appendMessage(`${isSv() ? 'Bokning skickad. Boknings-ID' : 'Booking submitted. Booking ID'}: ${bookingId}`, 'assistant', 'Ready');
+    renderSummary();
   } catch (error) {
     appendMessage(isSv() ? 'Kunde inte skicka bokningen till servern. Kontrollera API/Supabase och försök igen.' : 'Could not submit booking to the server. Check API/Supabase and try again.', 'assistant', 'Error');
     console.error(error);
+  } finally {
+    submitInFlight = false;
   }
 }
 
@@ -418,6 +440,7 @@ function openChat() {
   renderSummary();
   document.getElementById('custom-reply')?.focus();
 
+  if (localStorage.getItem(submittedBookingKey)) return;
   if (localStorage.getItem(guidedPromptShownKey) !== 'true') {
     localStorage.setItem(guidedPromptShownKey, 'true');
     askNextQuestion();
