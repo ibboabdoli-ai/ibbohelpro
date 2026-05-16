@@ -119,23 +119,14 @@ The following endpoints insert/update Supabase tables described in `docs/supabas
 
 ## Important production notes
 
-This is still an MVP. Before serving real customers, complete:
+This is still not a complete production marketplace until the following are configured:
 
-- Real user authentication and authorization
-- Supabase RLS policies or a dedicated backend permission layer
-- Email/SMS notifications
-- Payment flow
-- GDPR/privacy/terms pages
-- Secure file upload and verification for providers
-- Admin dashboard for provider approval and job management
+1. Real authentication/session management
+2. Supabase database tables and RLS policies
+3. Admin UI or secure admin workflow for provider review
+4. Payment integration
+5. Email/SMS notifications
+6. Privacy policy, terms, and GDPR consent text
+7. Real provider document upload with secure storage
 
-## Scripts
-
-```bash
-npm run dev
-npm run dev:api
-npm run dev:full
-npm run build
-npm run test:stage2
-npm run check:stage2
-```
+Use `docs/PRODUCTION_CHECKLIST.md` before any real customer launch.
