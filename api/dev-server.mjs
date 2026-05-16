@@ -3,6 +3,11 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const aiChatHandler = require('./ai/chat.js');
+const jobsListHandler = require('./jobs/list.js');
+const jobsRespondHandler = require('./jobs/respond.js');
+const providerStatusHandler = require('./providers/status.js');
+const adminApprovalHandler = require('./admin/provider-approval.js');
+const adminListApplicationsHandler = require('./admin/list-provider-applications.js');
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
@@ -19,8 +24,8 @@ function asText(value, max = 500) {
 
 function sendCors(res) {
   res.setHeader('Access-Control-Allow-Origin', process.env.APP_ORIGIN || '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 }
 
 app.use('/api', (_req, res, next) => {
@@ -56,17 +61,12 @@ app.post('/api/providers/apply', (req, res) => {
   });
 });
 
-
-app.post('/api/jobs/respond', (req, res) => {
-  const response = asText(req.body?.response, 40);
-  const jobId = asText(req.body?.jobId, 120);
-  if (!jobId || !['accepted', 'declined'].includes(response)) {
-    return res.status(400).json({ error: 'Invalid job response.' });
-  }
-  return res.json({ ok: true, jobId, response, mode: 'local-dev-api' });
-});
-
 app.all('/api/ai/chat', (req, res) => aiChatHandler(req, res));
+app.all('/api/jobs/list', (req, res) => jobsListHandler(req, res));
+app.all('/api/jobs/respond', (req, res) => jobsRespondHandler(req, res));
+app.all('/api/providers/status', (req, res) => providerStatusHandler(req, res));
+app.all('/api/admin/provider-approval', (req, res) => adminApprovalHandler(req, res));
+app.all('/api/admin/list-provider-applications', (req, res) => adminListApplicationsHandler(req, res));
 
 const port = process.env.PORT || 8787;
 app.listen(port, () => {

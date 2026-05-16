@@ -43,6 +43,19 @@ create table if not exists public.provider_applications (
   reviewed_at timestamptz
 );
 
+create table if not exists public.jobs (
+  id uuid primary key default gen_random_uuid(),
+  job_id text unique not null,
+  status text not null default 'open' check (status in ('open', 'assigned', 'cancelled', 'completed')),
+  title text not null,
+  location text,
+  budget text,
+  start_time text,
+  category text,
+  description text,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.job_responses (
   id uuid primary key default gen_random_uuid(),
   job_id text not null,
@@ -55,9 +68,20 @@ create table if not exists public.job_responses (
 create index if not exists idx_bookings_booking_id on public.bookings (booking_id);
 create index if not exists idx_provider_applications_application_id on public.provider_applications (application_id);
 create index if not exists idx_provider_applications_status on public.provider_applications (status);
+create index if not exists idx_jobs_job_id on public.jobs (job_id);
+create index if not exists idx_jobs_status on public.jobs (status);
 create index if not exists idx_job_responses_job_id on public.job_responses (job_id);
+
+-- Optional seed jobs for Stage 3 demo
+insert into public.jobs (job_id, status, title, location, budget, start_time, category, description)
+values
+  ('job-home-weekly-stockholm', 'open', 'Weekly home clean', 'Stockholm · Södermalm', '€120', 'Tue · 09:00', 'home', 'Recurring apartment cleaning. Customer requested kitchen focus and eco products.'),
+  ('job-office-evening-solna', 'open', 'Office evening refresh', 'Solna Business Park', '€220', 'Wed · 18:00', 'office', 'Small office after-hours cleaning with desks, floors, and kitchenette.'),
+  ('job-hotel-turnover-arlanda', 'open', 'Hotel turnover support', 'Arlanda area', '€180', 'Fri · 14:00', 'hotel', 'Turnover support for short-stay units. Fast checklist and photo handoff required.')
+on conflict (job_id) do nothing;
 
 -- Production hardening:
 -- 1. Enable RLS after implementing authenticated Supabase users.
 -- 2. Keep SUPABASE_SERVICE_ROLE_KEY only in serverless env vars, never in frontend code.
 -- 3. Replace broad service-role writes with user-scoped policies once auth is live.
+-- 4. Replace demo admin code workflow with real authenticated admin identity before production.

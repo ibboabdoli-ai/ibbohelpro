@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "check": "npm run build && npm audit --audit-level=moderate",
     "test:stage2": "node scripts/test-stage2-ai.mjs",
-    "check:stage2": "npm run build && npm run test:stage2 && npm audit --audit-level=moderate"
+    "check:stage2": "npm run build && npm run test:stage2 && npm audit --audit-level=moderate",
+    "test:stage3": "node scripts/test-stage3.mjs",
+    "check:stage3": "npm run build && npm run test:stage2 && npm run test:stage3 && npm audit --audit-level=moderate"
   },
   "dependencies": {
     "express": "^5.2.1"
