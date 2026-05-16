@@ -71,8 +71,8 @@ async function main() {
 
   const requiredFiles = [
     'src/admin.html',
-    'src/scripts/admin.ts',
-    'src/scripts/provider-stage3.ts',
+    'src/scripts/admin-main.ts',
+    'src/scripts/provider-stage3-main.ts',
     'api/jobs/list.ts',
     'api/providers/status.ts',
     'api/admin/list-provider-applications.ts'
@@ -82,7 +82,10 @@ async function main() {
   });
 
   const providerFeed = fs.readFileSync('src/provider-feed.html', 'utf8');
-  assert.ok(providerFeed.includes('provider-stage3.ts'), 'provider feed should load Stage 3 TypeScript script');
+  assert.ok(providerFeed.includes('provider-stage3.js'), 'provider feed should load deploy-safe Stage 3 entry shim');
+
+  const providerShim = fs.readFileSync('src/scripts/provider-stage3.js', 'utf8');
+  assert.ok(providerShim.includes('provider-stage3-main.ts'), 'provider shim should delegate to TypeScript implementation');
 
   const viteConfig = fs.readFileSync('vite.config.ts', 'utf8');
   assert.ok(viteConfig.includes('admin.html'), 'admin page should be included in Vite build');
