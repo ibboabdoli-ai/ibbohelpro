@@ -20,5 +20,5 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run Stage 4 check
-        run: npm run check:stage4
+      - name: Run Stage 5 check
+        run: npm run check:stage5
