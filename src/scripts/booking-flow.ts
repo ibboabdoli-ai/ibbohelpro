@@ -52,7 +52,9 @@ function escapeHTML(value: unknown) {
 }
 
 function getCurrentLanguage() {
-  const lang = localStorage.getItem('lang') || document.documentElement.lang || 'en';
+  const htmlLang = document.documentElement.lang || '';
+  const stored = localStorage.getItem('lang') || localStorage.getItem('cleanai_language') || '';
+  const lang = htmlLang.startsWith('sv') ? htmlLang : stored || htmlLang || 'en';
   return lang.startsWith('sv') ? 'sv' : lang.slice(0, 2) || 'en';
 }
 
@@ -174,6 +176,7 @@ function quickRepliesForField(field: keyof BookingDraft) {
   if (field === 'address') {
     addQuickReply('Stockholm', { address: 'Stockholm' });
     addQuickReply('Södertälje', { address: 'Södertälje' });
+    addQuickReply('Botkyrka', { address: 'Botkyrka' });
     return;
   }
   if (field === 'propertySize') {
@@ -194,6 +197,42 @@ function quickRepliesForField(field: keyof BookingDraft) {
     addQuickReply('Next week', { dateTime: 'Next week' });
     return;
   }
+}
+
+function inferPatchFromCurrentField(message: string): BookingDraft {
+  const value = message.trim();
+  if (!value) return {};
+  const draft = readBookingDraft();
+  const nextField = getMissingFields(draft)[0];
+  const lower = value.toLowerCase();
+
+  if (nextField === 'category') {
+    if (/office|kontor/i.test(value)) return { category: 'office' };
+    if (/hotel|hotell/i.test(value)) return { category: 'hotel' };
+    return { category: 'home' };
+  }
+
+  if (nextField === 'address') {
+    return { address: value.slice(0, 160) };
+  }
+
+  if (nextField === 'propertySize') {
+    return { propertySize: value.slice(0, 120) };
+  }
+
+  if (nextField === 'frequency') {
+    if (/weekly|veckovis|varje vecka/i.test(value)) return { frequency: 'Weekly' };
+    if (/biweekly|varannan/i.test(value)) return { frequency: 'Biweekly' };
+    if (/one|once|engång/i.test(value)) return { frequency: 'One-time' };
+    return { frequency: value.slice(0, 80) };
+  }
+
+  if (nextField === 'dateTime') {
+    return { dateTime: value.slice(0, 120) };
+  }
+
+  if (/deep clean|djuprengöring/i.test(lower)) return { extras: ['Deep clean'] };
+  return { notes: value.slice(0, 500) };
 }
 
 function askNextQuestion() {
@@ -217,19 +256,11 @@ function applyAiPayload(result: AiResponse) {
   }
 
   const modeLabel = result.mode === 'openai' ? 'AI' : 'Fallback';
-  appendMessage(result.assistantMessage || 'I updated your booking draft.', 'assistant', modeLabel);
-  renderSummary();
-
-  if (Array.isArray(result.quickActions) && result.quickActions.length) {
-    clearQuickReplies();
-    result.quickActions.slice(0, 6).forEach((action) => {
-      const label = action.text || action.val || 'Continue';
-      const value = action.val || action.text || label;
-      addQuickReply(label, value);
-    });
-  } else {
-    askNextQuestion();
+  if (result.assistantMessage) {
+    appendMessage(result.assistantMessage, 'assistant', modeLabel);
   }
+  renderSummary();
+  askNextQuestion();
 }
 
 async function sendToAi(message: string) {
@@ -245,6 +276,12 @@ async function sendToAi(message: string) {
   const input = document.getElementById('custom-reply') as HTMLInputElement | null;
   if (input) input.value = '';
 
+  const localPatch = inferPatchFromCurrentField(trimmed);
+  if (Object.keys(localPatch).length) {
+    saveBookingDraft(localPatch);
+    renderSummary();
+  }
+
   try {
     const response = await fetch('/api/ai/chat', {
       method: 'POST',
@@ -259,8 +296,7 @@ async function sendToAi(message: string) {
     if (!response.ok) throw new Error(result?.assistantMessage || 'AI request failed');
     applyAiPayload(result);
   } catch (error) {
-    appendMessage('AI endpoint is unavailable. I saved your note locally and will continue with guided questions.', 'assistant', 'Error');
-    saveBookingDraft({ notes: trimmed });
+    appendMessage('AI endpoint is unavailable. I saved your answer locally and will continue with guided questions.', 'assistant', 'Error');
     renderSummary();
     askNextQuestion();
     console.error(error);
