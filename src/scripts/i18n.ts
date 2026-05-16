@@ -1,7 +1,7 @@
 const localeFiles = {
   en: new URL('../locales/en.json', import.meta.url).href,
   sv: new URL('../locales/sv.json', import.meta.url).href,
-  se: new URL('../locales/se.json', import.meta.url).href, // legacy alias
+  se: new URL('../locales/se.json', import.meta.url).href,
   de: new URL('../locales/de.json', import.meta.url).href,
   es: new URL('../locales/es.json', import.meta.url).href
 };
@@ -40,9 +40,16 @@ function t(key, fallback = '') {
   return key;
 }
 
-function formatWithLocale(date, lang = currentLanguage, options = {}) {
+function formatWithLocale(value, langOrOptions = currentLanguage, maybeOptions = {}) {
+  const lang = typeof langOrOptions === 'string' ? langOrOptions : currentLanguage;
+  const options = typeof langOrOptions === 'string' ? maybeOptions : langOrOptions;
   const locale = languageMeta[lang]?.locale || languageMeta.en.locale;
-  return new Intl.DateTimeFormat(locale, options).format(date);
+
+  if (options?.style === 'currency' || options?.style === 'decimal' || options?.style === 'percent') {
+    return new Intl.NumberFormat(locale, options).format(Number(value || 0));
+  }
+
+  return new Intl.DateTimeFormat(locale, options).format(value);
 }
 
 function getStoredLanguage() {
