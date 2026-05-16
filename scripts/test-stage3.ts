@@ -37,53 +37,60 @@ async function invoke(handler: any, req: any) {
   return res;
 }
 
-const jobsResponse = await invoke(jobsList, { method: 'POST', body: {}, headers: {} });
-assert.equal(jobsResponse.statusCode, 200);
-assert.ok(Array.isArray(jobsResponse.body.jobs));
-assert.ok(jobsResponse.body.jobs.length >= 1);
-assert.ok(jobsResponse.body.jobs[0].id);
+async function main() {
+  const jobsResponse = await invoke(jobsList, { method: 'POST', body: {}, headers: {} });
+  assert.equal(jobsResponse.statusCode, 200);
+  assert.ok(Array.isArray(jobsResponse.body.jobs));
+  assert.ok(jobsResponse.body.jobs.length >= 1);
+  assert.ok(jobsResponse.body.jobs[0].id);
 
-const statusResponse = await invoke(providerStatus, {
-  method: 'POST',
-  body: { applicationId: 'PRV-TEST' },
-  headers: {}
+  const statusResponse = await invoke(providerStatus, {
+    method: 'POST',
+    body: { applicationId: 'PRV-TEST' },
+    headers: {}
+  });
+  assert.equal(statusResponse.statusCode, 200);
+  assert.equal(statusResponse.body.status, 'pending');
+
+  process.env.ADMIN_API_TOKEN = 'stage4-test-code';
+  const approvalResponse = await invoke(adminApproval, {
+    method: 'POST',
+    body: { applicationId: 'PRV-TEST', status: 'approved' },
+    headers: { authorization: 'Bearer stage4-test-code' }
+  });
+  assert.equal(approvalResponse.statusCode, 200);
+  assert.equal(approvalResponse.body.status, 'approved');
+
+  const listResponse = await invoke(adminList, {
+    method: 'POST',
+    body: {},
+    headers: { authorization: 'Bearer stage4-test-code' }
+  });
+  assert.equal(listResponse.statusCode, 200);
+  assert.ok(Array.isArray(listResponse.body.applications));
+
+  const requiredFiles = [
+    'src/admin.html',
+    'src/scripts/admin.ts',
+    'src/scripts/provider-stage3.ts',
+    'api/jobs/list.ts',
+    'api/providers/status.ts',
+    'api/admin/list-provider-applications.ts'
+  ];
+  requiredFiles.forEach((file) => {
+    assert.ok(fs.existsSync(path.resolve(file)), `${file} should exist`);
+  });
+
+  const providerFeed = fs.readFileSync('src/provider-feed.html', 'utf8');
+  assert.ok(providerFeed.includes('provider-stage3.ts'), 'provider feed should load Stage 3 TypeScript script');
+
+  const viteConfig = fs.readFileSync('vite.config.ts', 'utf8');
+  assert.ok(viteConfig.includes('admin.html'), 'admin page should be included in Vite build');
+
+  console.log('Stage 3 TypeScript tests passed');
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
 });
-assert.equal(statusResponse.statusCode, 200);
-assert.equal(statusResponse.body.status, 'pending');
-
-process.env.ADMIN_API_TOKEN = 'stage4-test-code';
-const approvalResponse = await invoke(adminApproval, {
-  method: 'POST',
-  body: { applicationId: 'PRV-TEST', status: 'approved' },
-  headers: { authorization: 'Bearer stage4-test-code' }
-});
-assert.equal(approvalResponse.statusCode, 200);
-assert.equal(approvalResponse.body.status, 'approved');
-
-const listResponse = await invoke(adminList, {
-  method: 'POST',
-  body: {},
-  headers: { authorization: 'Bearer stage4-test-code' }
-});
-assert.equal(listResponse.statusCode, 200);
-assert.ok(Array.isArray(listResponse.body.applications));
-
-const requiredFiles = [
-  'src/admin.html',
-  'src/scripts/admin.ts',
-  'src/scripts/provider-stage3.ts',
-  'api/jobs/list.ts',
-  'api/providers/status.ts',
-  'api/admin/list-provider-applications.ts'
-];
-requiredFiles.forEach((file) => {
-  assert.ok(fs.existsSync(path.resolve(file)), `${file} should exist`);
-});
-
-const providerFeed = fs.readFileSync('src/provider-feed.html', 'utf8');
-assert.ok(providerFeed.includes('provider-stage3.ts'), 'provider feed should load Stage 3 TypeScript script');
-
-const viteConfig = fs.readFileSync('vite.config.ts', 'utf8');
-assert.ok(viteConfig.includes('admin.html'), 'admin page should be included in Vite build');
-
-console.log('Stage 3 TypeScript tests passed');
