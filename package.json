@@ -1,6 +1,10 @@
 {
   "name": "cleanai-mvp",
   "private": true,
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "dev:api": "tsx api/dev-server.ts",
