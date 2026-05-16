@@ -20,6 +20,8 @@ type AiResponse = {
 
 const bookingKey = 'cleanai_booking_draft';
 const bookingStartedKey = 'cleanai_booking_started';
+const guidedPromptShownKey = 'cleanai_guided_prompt_shown';
+const requiredFields: Array<keyof BookingDraft> = ['category', 'address', 'propertySize', 'frequency', 'dateTime'];
 
 function readBookingDraft(): BookingDraft {
   try {
@@ -72,13 +74,17 @@ function estimate(draft: BookingDraft) {
   return { total, hours };
 }
 
+function getMissingFields(draft = readBookingDraft()) {
+  return requiredFields.filter((key) => !String(draft[key] || '').trim());
+}
+
 function renderSummary() {
   const draft = readBookingDraft();
   const summary = document.getElementById('booking-summary');
   if (!summary) return;
 
   const price = estimate(draft);
-  const missing = ['category', 'address', 'propertySize', 'frequency', 'dateTime'].filter((key) => !(draft as any)[key]);
+  const missing = getMissingFields(draft);
 
   summary.classList.remove('hidden');
   summary.innerHTML = `
@@ -97,8 +103,13 @@ function renderSummary() {
         <p class="font-semibold">€${price.total.toFixed(2)}</p>
         <p class="text-xs text-emerald-200">${price.hours} estimated hours</p>
       </div>
+      ${missing.length ? '' : '<button id="booking-flow-submit" class="btn-primary mt-2 w-full rounded-2xl py-3 text-sm font-semibold">Submit booking draft</button>'}
     </div>
   `;
+
+  document.getElementById('booking-flow-submit')?.addEventListener('click', () => {
+    appendMessage('Your booking draft is ready. In the next step we should send this to Supabase and show a booking ID.', 'assistant', 'Ready');
+  });
 }
 
 function row(label: string, value: unknown) {
@@ -134,19 +145,70 @@ function addQuickReply(label: string, patchOrMessage: BookingDraft | string) {
     }
     saveBookingDraft(patchOrMessage);
     renderSummary();
-    appendMessage(`Saved: ${label}`);
+    askNextQuestion();
   });
   wrap.appendChild(button);
 }
 
-function renderInitialQuickReplies() {
-  const wrap = document.getElementById('quick-replies');
-  if (!wrap || wrap.childElementCount) return;
-  addQuickReply('Address: Stockholm', { address: 'Stockholm' });
-  addQuickReply('2–3 bedrooms', { propertySize: '2-3 bedrooms' });
-  addQuickReply('Weekly', { frequency: 'Weekly' });
-  addQuickReply('Sunday 09:00', { dateTime: 'Sunday 09:00' });
-  addQuickReply('Deep clean', { extras: ['Deep clean'] });
+function questionForField(field: keyof BookingDraft) {
+  const lang = getCurrentLanguage();
+  const sv = lang === 'sv';
+  const copy: Record<string, string> = {
+    category: sv ? 'Vad vill du boka: privat hem, kontor eller hotell?' : 'What do you need cleaned: private home, office, or hotel?',
+    address: sv ? 'Vilken adress eller stad ska städaren åka till?' : 'What address or city should the cleaner go to?',
+    propertySize: sv ? 'Hur stor är ytan? Till exempel 2–3 rum eller 80 kvm.' : 'How large is the property? For example, 2–3 bedrooms or 80 sqm.',
+    frequency: sv ? 'Hur ofta vill du ha städning: engång, veckovis eller varannan vecka?' : 'How often do you want cleaning: one-time, weekly, or biweekly?',
+    dateTime: sv ? 'Vilken dag och tid passar dig?' : 'Which day and time works for you?'
+  };
+  return copy[field] || (sv ? 'Vad vill du lägga till?' : 'What would you like to add?');
+}
+
+function quickRepliesForField(field: keyof BookingDraft) {
+  clearQuickReplies();
+  if (field === 'category') {
+    addQuickReply('Private home', { category: 'home' });
+    addQuickReply('Office', { category: 'office' });
+    addQuickReply('Hotel', { category: 'hotel' });
+    return;
+  }
+  if (field === 'address') {
+    addQuickReply('Stockholm', { address: 'Stockholm' });
+    addQuickReply('Södertälje', { address: 'Södertälje' });
+    return;
+  }
+  if (field === 'propertySize') {
+    addQuickReply('Studio / 1 room', { propertySize: 'Studio / 1 room' });
+    addQuickReply('2–3 bedrooms', { propertySize: '2-3 bedrooms' });
+    addQuickReply('4+ bedrooms', { propertySize: '4+ bedrooms' });
+    return;
+  }
+  if (field === 'frequency') {
+    addQuickReply('One-time', { frequency: 'One-time' });
+    addQuickReply('Weekly', { frequency: 'Weekly' });
+    addQuickReply('Biweekly', { frequency: 'Biweekly' });
+    return;
+  }
+  if (field === 'dateTime') {
+    addQuickReply('Tomorrow 09:00', { dateTime: 'Tomorrow 09:00' });
+    addQuickReply('Sunday 09:00', { dateTime: 'Sunday 09:00' });
+    addQuickReply('Next week', { dateTime: 'Next week' });
+    return;
+  }
+}
+
+function askNextQuestion() {
+  const draft = readBookingDraft();
+  const missing = getMissingFields(draft);
+  if (!missing.length) {
+    clearQuickReplies();
+    addQuickReply('Add deep clean', { extras: ['Deep clean'] });
+    addQuickReply('Submit booking draft', 'submit booking draft');
+    appendMessage('Great. Your booking draft is complete. Review the summary and submit when you are ready.', 'assistant', 'Assistant');
+    return;
+  }
+  const nextField = missing[0];
+  appendMessage(questionForField(nextField), 'assistant', 'Assistant');
+  quickRepliesForField(nextField);
 }
 
 function applyAiPayload(result: AiResponse) {
@@ -165,12 +227,19 @@ function applyAiPayload(result: AiResponse) {
       const value = action.val || action.text || label;
       addQuickReply(label, value);
     });
+  } else {
+    askNextQuestion();
   }
 }
 
 async function sendToAi(message: string) {
   const trimmed = message.trim();
   if (!trimmed) return;
+
+  if (/^submit booking draft$/i.test(trimmed)) {
+    appendMessage('Your booking draft is ready. Next implementation step: submit it to /api/bookings/create and save it in Supabase.', 'assistant', 'Ready');
+    return;
+  }
 
   appendMessage(trimmed, 'user');
   const input = document.getElementById('custom-reply') as HTMLInputElement | null;
@@ -190,9 +259,10 @@ async function sendToAi(message: string) {
     if (!response.ok) throw new Error(result?.assistantMessage || 'AI request failed');
     applyAiPayload(result);
   } catch (error) {
-    appendMessage('AI endpoint is unavailable. I saved your note locally; check OPENAI_API_KEY and deployment logs.', 'assistant', 'Error');
+    appendMessage('AI endpoint is unavailable. I saved your note locally and will continue with guided questions.', 'assistant', 'Error');
     saveBookingDraft({ notes: trimmed });
     renderSummary();
+    askNextQuestion();
     console.error(error);
   }
 }
@@ -203,9 +273,17 @@ function openChat() {
   empty?.classList.add('hidden');
   chat?.classList.remove('hidden');
   localStorage.setItem(bookingStartedKey, 'true');
-  renderInitialQuickReplies();
   renderSummary();
   document.getElementById('custom-reply')?.focus();
+
+  if (localStorage.getItem(guidedPromptShownKey) !== 'true') {
+    localStorage.setItem(guidedPromptShownKey, 'true');
+    askNextQuestion();
+  } else if (!document.getElementById('quick-replies')?.childElementCount) {
+    const missing = getMissingFields();
+    if (missing.length) quickRepliesForField(missing[0]);
+    else askNextQuestion();
+  }
 }
 
 function initBookingFlow() {
