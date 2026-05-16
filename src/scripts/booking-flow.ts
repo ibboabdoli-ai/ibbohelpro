@@ -18,9 +18,18 @@ type AiResponse = {
   mode?: string;
 };
 
+type LearnedAnswer = {
+  phrase: string;
+  field: keyof BookingDraft;
+  value: string;
+  count: number;
+  updatedAt: string;
+};
+
 const bookingKey = 'cleanai_booking_draft';
 const bookingStartedKey = 'cleanai_booking_started';
 const guidedPromptShownKey = 'cleanai_guided_prompt_shown';
+const nlpMemoryKey = 'cleanai_nlp_memory';
 const requiredFields: Array<keyof BookingDraft> = ['category', 'address', 'propertySize', 'frequency', 'dateTime'];
 
 function readBookingDraft(): BookingDraft {
@@ -42,6 +51,41 @@ function saveBookingDraft(update: BookingDraft = {}) {
   return next;
 }
 
+function normalize(value: string) {
+  return value.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9åäö\s:-]/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function readMemory(): LearnedAnswer[] {
+  try {
+    const raw = localStorage.getItem(nlpMemoryKey);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberAnswer(field: keyof BookingDraft, value: string, phrase = value) {
+  const cleanValue = String(value || '').trim();
+  const cleanPhrase = normalize(phrase || cleanValue);
+  if (!cleanValue || !cleanPhrase) return;
+  const memory = readMemory();
+  const existing = memory.find((item) => item.phrase === cleanPhrase && item.field === field);
+  if (existing) {
+    existing.value = cleanValue;
+    existing.count += 1;
+    existing.updatedAt = new Date().toISOString();
+  } else {
+    memory.unshift({ phrase: cleanPhrase, field, value: cleanValue, count: 1, updatedAt: new Date().toISOString() });
+  }
+  localStorage.setItem(nlpMemoryKey, JSON.stringify(memory.slice(0, 80)));
+}
+
+function memoryPatch(message: string): BookingDraft {
+  const phrase = normalize(message);
+  const hit = readMemory().find((item) => item.phrase === phrase || phrase.includes(item.phrase));
+  return hit ? { [hit.field]: hit.value } as BookingDraft : {};
+}
+
 function escapeHTML(value: unknown) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -58,11 +102,16 @@ function getCurrentLanguage() {
   return lang.startsWith('sv') ? 'sv' : lang.slice(0, 2) || 'en';
 }
 
+function isSv() {
+  return getCurrentLanguage() === 'sv';
+}
+
 function categoryLabel(category?: string) {
+  const sv = isSv();
   const labels: Record<string, string> = {
-    home: 'Private home',
-    office: 'Office',
-    hotel: 'Hotel'
+    home: sv ? 'Privat hem' : 'Private home',
+    office: sv ? 'Kontor' : 'Office',
+    hotel: sv ? 'Hotell' : 'Hotel'
   };
   return labels[category || ''] || category || '—';
 }
@@ -92,26 +141,24 @@ function renderSummary() {
   summary.innerHTML = `
     <div class="space-y-3">
       <div class="flex items-center justify-between gap-3">
-        <p class="text-sm font-semibold text-white">Booking Draft</p>
-        <span class="pill">${missing.length ? 'Incomplete' : 'Ready'}</span>
+        <p class="text-sm font-semibold text-white">${isSv() ? 'Bokningsutkast' : 'Booking Draft'}</p>
+        <span class="pill">${missing.length ? (isSv() ? 'Ej komplett' : 'Incomplete') : (isSv() ? 'Klar' : 'Ready')}</span>
       </div>
-      ${row('Category', categoryLabel(draft.category))}
-      ${row('Address', draft.address || '—')}
-      ${row('Size', draft.propertySize || '—')}
-      ${row('Frequency', draft.frequency || '—')}
-      ${row('Schedule', draft.dateTime || '—')}
-      ${row('Extras', draft.extras?.length ? draft.extras.join(', ') : '—')}
+      ${row(isSv() ? 'Kategori' : 'Category', categoryLabel(draft.category))}
+      ${row(isSv() ? 'Adress' : 'Address', draft.address || '—')}
+      ${row(isSv() ? 'Storlek' : 'Size', draft.propertySize || '—')}
+      ${row(isSv() ? 'Frekvens' : 'Frequency', draft.frequency || '—')}
+      ${row(isSv() ? 'Tid' : 'Schedule', draft.dateTime || '—')}
+      ${row(isSv() ? 'Tillägg' : 'Extras', draft.extras?.length ? draft.extras.join(', ') : '—')}
       <div class="rounded-2xl bg-emerald-500/10 p-3 text-sm text-emerald-100">
         <p class="font-semibold">€${price.total.toFixed(2)}</p>
-        <p class="text-xs text-emerald-200">${price.hours} estimated hours</p>
+        <p class="text-xs text-emerald-200">${price.hours} ${isSv() ? 'uppskattade timmar' : 'estimated hours'}</p>
       </div>
-      ${missing.length ? '' : '<button id="booking-flow-submit" class="btn-primary mt-2 w-full rounded-2xl py-3 text-sm font-semibold">Submit booking draft</button>'}
+      ${missing.length ? '' : `<button id="booking-flow-submit" class="btn-primary mt-2 w-full rounded-2xl py-3 text-sm font-semibold">${isSv() ? 'Skicka bokningsutkast' : 'Submit booking draft'}</button>`}
     </div>
   `;
 
-  document.getElementById('booking-flow-submit')?.addEventListener('click', () => {
-    appendMessage('Your booking draft is ready. In the next step we should send this to Supabase and show a booking ID.', 'assistant', 'Ready');
-  });
+  document.getElementById('booking-flow-submit')?.addEventListener('click', submitBookingDraft);
 }
 
 function row(label: string, value: unknown) {
@@ -145,6 +192,9 @@ function addQuickReply(label: string, patchOrMessage: BookingDraft | string) {
       await sendToAi(patchOrMessage);
       return;
     }
+    Object.entries(patchOrMessage).forEach(([field, value]) => {
+      if (typeof value === 'string') rememberAnswer(field as keyof BookingDraft, value, value);
+    });
     saveBookingDraft(patchOrMessage);
     renderSummary();
     askNextQuestion();
@@ -152,12 +202,22 @@ function addQuickReply(label: string, patchOrMessage: BookingDraft | string) {
   wrap.appendChild(button);
 }
 
+function addLocationButton() {
+  const wrap = document.getElementById('quick-replies');
+  if (!wrap) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'quick-reply';
+  button.textContent = isSv() ? 'Använd min plats' : 'Use my current location';
+  button.addEventListener('click', requestLocationAddress);
+  wrap.appendChild(button);
+}
+
 function questionForField(field: keyof BookingDraft) {
-  const lang = getCurrentLanguage();
-  const sv = lang === 'sv';
+  const sv = isSv();
   const copy: Record<string, string> = {
     category: sv ? 'Vad vill du boka: privat hem, kontor eller hotell?' : 'What do you need cleaned: private home, office, or hotel?',
-    address: sv ? 'Vilken adress eller stad ska städaren åka till?' : 'What address or city should the cleaner go to?',
+    address: sv ? 'Vilken adress eller stad ska städaren åka till? Du kan också välja “Använd min plats”.' : 'What address or city should the cleaner go to? You can also choose “Use my current location”.',
     propertySize: sv ? 'Hur stor är ytan? Till exempel 2–3 rum eller 80 kvm.' : 'How large is the property? For example, 2–3 bedrooms or 80 sqm.',
     frequency: sv ? 'Hur ofta vill du ha städning: engång, veckovis eller varannan vecka?' : 'How often do you want cleaning: one-time, weekly, or biweekly?',
     dateTime: sv ? 'Vilken dag och tid passar dig?' : 'Which day and time works for you?'
@@ -168,33 +228,34 @@ function questionForField(field: keyof BookingDraft) {
 function quickRepliesForField(field: keyof BookingDraft) {
   clearQuickReplies();
   if (field === 'category') {
-    addQuickReply('Private home', { category: 'home' });
-    addQuickReply('Office', { category: 'office' });
-    addQuickReply('Hotel', { category: 'hotel' });
+    addQuickReply(isSv() ? 'Privat hem' : 'Private home', { category: 'home' });
+    addQuickReply(isSv() ? 'Kontor' : 'Office', { category: 'office' });
+    addQuickReply(isSv() ? 'Hotell' : 'Hotel', { category: 'hotel' });
     return;
   }
   if (field === 'address') {
+    addLocationButton();
     addQuickReply('Stockholm', { address: 'Stockholm' });
     addQuickReply('Södertälje', { address: 'Södertälje' });
     addQuickReply('Botkyrka', { address: 'Botkyrka' });
     return;
   }
   if (field === 'propertySize') {
-    addQuickReply('Studio / 1 room', { propertySize: 'Studio / 1 room' });
-    addQuickReply('2–3 bedrooms', { propertySize: '2-3 bedrooms' });
-    addQuickReply('4+ bedrooms', { propertySize: '4+ bedrooms' });
+    addQuickReply(isSv() ? '1 rum' : 'Studio / 1 room', { propertySize: isSv() ? '1 rum' : 'Studio / 1 room' });
+    addQuickReply(isSv() ? '2–3 rum' : '2–3 bedrooms', { propertySize: isSv() ? '2-3 rum' : '2-3 bedrooms' });
+    addQuickReply(isSv() ? '4+ rum' : '4+ bedrooms', { propertySize: isSv() ? '4+ rum' : '4+ bedrooms' });
     return;
   }
   if (field === 'frequency') {
-    addQuickReply('One-time', { frequency: 'One-time' });
-    addQuickReply('Weekly', { frequency: 'Weekly' });
-    addQuickReply('Biweekly', { frequency: 'Biweekly' });
+    addQuickReply(isSv() ? 'Engång' : 'One-time', { frequency: 'One-time' });
+    addQuickReply(isSv() ? 'Veckovis' : 'Weekly', { frequency: 'Weekly' });
+    addQuickReply(isSv() ? 'Varannan vecka' : 'Biweekly', { frequency: 'Biweekly' });
     return;
   }
   if (field === 'dateTime') {
-    addQuickReply('Tomorrow 09:00', { dateTime: 'Tomorrow 09:00' });
-    addQuickReply('Sunday 09:00', { dateTime: 'Sunday 09:00' });
-    addQuickReply('Next week', { dateTime: 'Next week' });
+    addQuickReply(isSv() ? 'Imorgon 09:00' : 'Tomorrow 09:00', { dateTime: isSv() ? 'Imorgon 09:00' : 'Tomorrow 09:00' });
+    addQuickReply(isSv() ? 'Söndag 09:00' : 'Sunday 09:00', { dateTime: isSv() ? 'Söndag 09:00' : 'Sunday 09:00' });
+    addQuickReply(isSv() ? 'Nästa vecka' : 'Next week', { dateTime: isSv() ? 'Nästa vecka' : 'Next week' });
     return;
   }
 }
@@ -202,37 +263,38 @@ function quickRepliesForField(field: keyof BookingDraft) {
 function inferPatchFromCurrentField(message: string): BookingDraft {
   const value = message.trim();
   if (!value) return {};
+  const learned = memoryPatch(value);
+  if (Object.keys(learned).length) return learned;
+
   const draft = readBookingDraft();
   const nextField = getMissingFields(draft)[0];
-  const lower = value.toLowerCase();
+  const lower = normalize(value);
 
   if (nextField === 'category') {
-    if (/office|kontor/i.test(value)) return { category: 'office' };
-    if (/hotel|hotell/i.test(value)) return { category: 'hotel' };
+    if (/office|kontor/.test(lower)) return { category: 'office' };
+    if (/hotel|hotell/.test(lower)) return { category: 'hotel' };
     return { category: 'home' };
   }
 
-  if (nextField === 'address') {
-    return { address: value.slice(0, 160) };
-  }
-
-  if (nextField === 'propertySize') {
-    return { propertySize: value.slice(0, 120) };
-  }
+  if (nextField === 'address') return { address: value.slice(0, 160) };
+  if (nextField === 'propertySize') return { propertySize: value.slice(0, 120) };
 
   if (nextField === 'frequency') {
-    if (/weekly|veckovis|varje vecka/i.test(value)) return { frequency: 'Weekly' };
-    if (/biweekly|varannan/i.test(value)) return { frequency: 'Biweekly' };
-    if (/one|once|engång/i.test(value)) return { frequency: 'One-time' };
+    if (/weekly|veckovis|varje vecka/.test(lower)) return { frequency: 'Weekly' };
+    if (/biweekly|varannan/.test(lower)) return { frequency: 'Biweekly' };
+    if (/one|once|engang|engång/.test(lower)) return { frequency: 'One-time' };
     return { frequency: value.slice(0, 80) };
   }
 
-  if (nextField === 'dateTime') {
-    return { dateTime: value.slice(0, 120) };
-  }
-
-  if (/deep clean|djuprengöring/i.test(lower)) return { extras: ['Deep clean'] };
+  if (nextField === 'dateTime') return { dateTime: value.slice(0, 120) };
+  if (/deep clean|djuprengoring|djuprengöring/.test(lower)) return { extras: ['Deep clean'] };
   return { notes: value.slice(0, 500) };
+}
+
+function rememberPatch(patch: BookingDraft, phrase: string) {
+  Object.entries(patch).forEach(([field, value]) => {
+    if (typeof value === 'string') rememberAnswer(field as keyof BookingDraft, value, phrase);
+  });
 }
 
 function askNextQuestion() {
@@ -240,9 +302,9 @@ function askNextQuestion() {
   const missing = getMissingFields(draft);
   if (!missing.length) {
     clearQuickReplies();
-    addQuickReply('Add deep clean', { extras: ['Deep clean'] });
-    addQuickReply('Submit booking draft', 'submit booking draft');
-    appendMessage('Great. Your booking draft is complete. Review the summary and submit when you are ready.', 'assistant', 'Assistant');
+    addQuickReply(isSv() ? 'Lägg till djuprengöring' : 'Add deep clean', { extras: ['Deep clean'] });
+    addQuickReply(isSv() ? 'Skicka bokningsutkast' : 'Submit booking draft', 'submit booking draft');
+    appendMessage(isSv() ? 'Bra. Bokningsutkastet är komplett. Kontrollera sammanfattningen och skicka när du är redo.' : 'Great. Your booking draft is complete. Review the summary and submit when you are ready.', 'assistant', 'Assistant');
     return;
   }
   const nextField = missing[0];
@@ -251,16 +313,64 @@ function askNextQuestion() {
 }
 
 function applyAiPayload(result: AiResponse) {
-  if (result.bookingPatch && Object.keys(result.bookingPatch).length) {
-    saveBookingDraft(result.bookingPatch);
-  }
-
-  const modeLabel = result.mode === 'openai' ? 'AI' : 'Fallback';
-  if (result.assistantMessage) {
-    appendMessage(result.assistantMessage, 'assistant', modeLabel);
-  }
+  if (result.bookingPatch && Object.keys(result.bookingPatch).length) saveBookingDraft(result.bookingPatch);
+  if (result.mode === 'openai' && result.assistantMessage) appendMessage(result.assistantMessage, 'assistant', 'AI');
   renderSummary();
   askNextQuestion();
+}
+
+async function requestLocationAddress() {
+  if (!navigator.geolocation) {
+    appendMessage(isSv() ? 'Din webbläsare stödjer inte platsdelning. Skriv stad eller adress manuellt.' : 'Your browser does not support location sharing. Type city or address manually.', 'assistant', 'Location');
+    return;
+  }
+
+  appendMessage(isSv() ? 'Jag ber om platsåtkomst. Godkänn i webbläsaren om du vill fylla i adress automatiskt.' : 'I am requesting location permission. Approve it in the browser to autofill address.', 'assistant', 'Location');
+
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    const { latitude, longitude } = position.coords;
+    let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&accept-language=${getCurrentLanguage()}`;
+      const response = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (response.ok) {
+        const data = await response.json();
+        const city = data.address?.city || data.address?.town || data.address?.municipality || data.address?.suburb || data.address?.county;
+        const road = data.address?.road;
+        address = [road, city].filter(Boolean).join(', ') || data.display_name || address;
+      }
+    } catch (error) {
+      console.warn('Reverse geocoding failed', error);
+    }
+    saveBookingDraft({ address });
+    rememberAnswer('address', address, 'current location');
+    renderSummary();
+    appendMessage(isSv() ? `Adress/plats sparad: ${address}` : `Address/location saved: ${address}`, 'assistant', 'Location');
+    askNextQuestion();
+  }, () => {
+    appendMessage(isSv() ? 'Platsåtkomst nekades eller misslyckades. Skriv adress eller stad manuellt.' : 'Location permission was denied or failed. Type address or city manually.', 'assistant', 'Location');
+  }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+}
+
+async function submitBookingDraft() {
+  const draft = readBookingDraft();
+  if (getMissingFields(draft).length) {
+    askNextQuestion();
+    return;
+  }
+  try {
+    const response = await fetch('/api/bookings/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ draft, estimate: estimate(draft), user: JSON.parse(localStorage.getItem('cleanai_user') || '{}') })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Booking submit failed');
+    appendMessage(`${isSv() ? 'Bokning skickad. Boknings-ID' : 'Booking submitted. Booking ID'}: ${result.bookingId || 'created'}`, 'assistant', 'Ready');
+  } catch (error) {
+    appendMessage(isSv() ? 'Kunde inte skicka bokningen till servern. Kontrollera API/Supabase och försök igen.' : 'Could not submit booking to the server. Check API/Supabase and try again.', 'assistant', 'Error');
+    console.error(error);
+  }
 }
 
 async function sendToAi(message: string) {
@@ -268,7 +378,7 @@ async function sendToAi(message: string) {
   if (!trimmed) return;
 
   if (/^submit booking draft$/i.test(trimmed)) {
-    appendMessage('Your booking draft is ready. Next implementation step: submit it to /api/bookings/create and save it in Supabase.', 'assistant', 'Ready');
+    await submitBookingDraft();
     return;
   }
 
@@ -279,6 +389,7 @@ async function sendToAi(message: string) {
   const localPatch = inferPatchFromCurrentField(trimmed);
   if (Object.keys(localPatch).length) {
     saveBookingDraft(localPatch);
+    rememberPatch(localPatch, trimmed);
     renderSummary();
   }
 
@@ -286,17 +397,12 @@ async function sendToAi(message: string) {
     const response = await fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: trimmed,
-        lang: getCurrentLanguage(),
-        context: { bookingDraft: readBookingDraft() }
-      })
+      body: JSON.stringify({ message: trimmed, lang: getCurrentLanguage(), context: { bookingDraft: readBookingDraft() } })
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result?.assistantMessage || 'AI request failed');
     applyAiPayload(result);
   } catch (error) {
-    appendMessage('AI endpoint is unavailable. I saved your answer locally and will continue with guided questions.', 'assistant', 'Error');
     renderSummary();
     askNextQuestion();
     console.error(error);
@@ -336,15 +442,9 @@ function initBookingFlow() {
     await sendToAi(input?.value || '');
   });
 
-  if (localStorage.getItem(bookingStartedKey) === 'true') {
-    openChat();
-  } else {
-    renderSummary();
-  }
+  if (localStorage.getItem(bookingStartedKey) === 'true') openChat();
+  else renderSummary();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initBookingFlow);
-} else {
-  initBookingFlow();
-}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBookingFlow);
+else initBookingFlow();
