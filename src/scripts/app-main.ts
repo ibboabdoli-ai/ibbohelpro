@@ -163,6 +163,24 @@ function go(path) {
   window.location.href = path;
 }
 
+function labelForCategory(category) {
+  const map = {
+    home: t('onboarding.category.home', 'Private home'),
+    office: t('onboarding.category.office', 'Office'),
+    hotel: t('onboarding.category.hotel', 'Hotel')
+  };
+  return map[category] || category || '—';
+}
+
+function labelForFrequency(frequency) {
+  const map = {
+    Weekly: t('chat.steps.frequency.option.weekly', 'Weekly'),
+    Biweekly: t('chat.steps.frequency.option.biweekly', 'Biweekly'),
+    Once: t('chat.steps.frequency.option.once', 'One-time')
+  };
+  return map[frequency] || frequency || '—';
+}
+
 function initLanguage() {
   initI18n();
   document.getElementById('language-launcher')?.addEventListener('click', openLanguageSelector);
@@ -195,7 +213,7 @@ function initLanding() {
     const data = new FormData(form);
     const location = sanitizeText(data.get('location'));
     if (!location) {
-      setError('landing-error', t('landing.form.error.location'));
+      setError('landing-error', t('landing.form.error.location', 'Add a postcode or city to continue.'));
       return;
     }
     setBookingDraft({ category: selectedSegment, address: location });
@@ -211,12 +229,12 @@ function initAuthForms() {
     const email = sanitizeText(data.get('email')).toLowerCase();
     const password = sanitizeText(data.get('password'));
     if (!email.includes('@') || password.length < 8) {
-      setError('login-error', t('auth.error.invalid'));
+      setError('login-error', t('auth.error.invalid', 'Enter a valid email and password.'));
       return;
     }
-    const existing = read(storageKeys.user, null);
-    const role = existing?.role || 'customer';
-    setAuth({ email, role, name: existing?.name || email.split('@')[0] });
+    const previousUser = read(storageKeys.user, null);
+    const role = previousUser?.email === email ? previousUser?.role || 'customer' : 'customer';
+    setAuth({ email, role, name: previousUser?.email === email ? previousUser?.name || email.split('@')[0] : email.split('@')[0] });
     go(role === 'provider' ? '/provider-feed.html' : '/onboarding.html');
   });
 
@@ -229,7 +247,7 @@ function initAuthForms() {
     const password = sanitizeText(data.get('password'));
     const role = sanitizeText(data.get('role')) || 'customer';
     if (!name || !email.includes('@') || password.length < 8) {
-      setError('register-error', t('auth.error.invalidRegister'));
+      setError('register-error', t('auth.error.invalidRegister', 'Add your name, valid email, and a password with at least 8 characters.'));
       return;
     }
     setAuth({ name, email, role });
@@ -255,7 +273,7 @@ function initCustomerOnboarding() {
     const data = new FormData(form);
     const category = sanitizeText(data.get('category'));
     if (!category) {
-      setError('onboarding-error', t('onboarding.error.category'));
+      setError('onboarding-error', t('onboarding.error.category', 'Choose what should be cleaned to continue.'));
       return;
     }
     setProfile({ role: 'customer', onboardingComplete: true, preferredCategory: category });
@@ -273,18 +291,18 @@ function renderBookingSummary() {
   summary.innerHTML = `
     <div class="space-y-3">
       <div class="flex items-center justify-between gap-3">
-        <p class="text-sm font-semibold text-white">${escapeHTML(t('booking.summary.title'))}</p>
-        <span class="pill">${missing.length ? escapeHTML(t('booking.summary.incomplete')) : escapeHTML(t('booking.summary.ready'))}</span>
+        <p class="text-sm font-semibold text-white">${escapeHTML(t('booking.summary.title', 'Booking draft'))}</p>
+        <span class="pill">${missing.length ? escapeHTML(t('booking.summary.incomplete', 'Incomplete')) : escapeHTML(t('booking.summary.ready', 'Ready'))}</span>
       </div>
-      ${summaryRow(t('booking.field.category'), draft.category || '—')}
-      ${summaryRow(t('booking.field.address'), draft.address || '—')}
-      ${summaryRow(t('booking.field.size'), draft.propertySize || '—')}
-      ${summaryRow(t('booking.field.frequency'), draft.frequency || '—')}
-      ${summaryRow(t('booking.field.date'), draft.dateTime || '—')}
-      ${summaryRow(t('booking.field.extras'), draft.extras?.length ? draft.extras.join(', ') : '—')}
+      ${summaryRow(t('booking.fields.category', 'Category'), labelForCategory(draft.category))}
+      ${summaryRow(t('booking.fields.address', 'Address'), draft.address || '—')}
+      ${summaryRow(t('booking.fields.size', 'Size'), draft.propertySize || '—')}
+      ${summaryRow(t('booking.fields.frequency', 'Frequency'), labelForFrequency(draft.frequency))}
+      ${summaryRow(t('booking.fields.schedule', 'Schedule'), draft.dateTime || '—')}
+      ${summaryRow(t('booking.fields.extras', 'Extras'), draft.extras?.length ? draft.extras.join(', ') : '—')}
       <div class="rounded-2xl bg-emerald-500/10 p-3 text-sm text-emerald-100">
         <p class="font-semibold">${escapeHTML(formatWithLocale(estimate.total, { style: 'currency', currency: estimate.currency }))}</p>
-        <p class="text-xs text-emerald-200">${escapeHTML(estimate.hours)} ${escapeHTML(t('booking.summary.hours'))}</p>
+        <p class="text-xs text-emerald-200">${escapeHTML(estimate.hours)} ${escapeHTML(t('booking.summary.hours', 'estimated hours'))}</p>
       </div>
     </div>
   `;
@@ -352,7 +370,7 @@ async function sendChatMessage(message) {
     quickActions(result.quickActions || guided.quickActions);
   } catch (error) {
     console.error(error);
-    appendMessage('assistant', guided.message || t('booking.chat.fallback'));
+    appendMessage('assistant', guided.message || t('booking.chat.fallback', 'I can still guide you with the deterministic flow.'));
     quickActions(guided.quickActions);
   }
 }
@@ -364,8 +382,8 @@ function initBookingChat() {
   const profile = getProfile();
   if (!profile.onboardingComplete) go('/onboarding.html');
   renderBookingSummary();
-  appendMessage('assistant', t('booking.chat.welcome'));
-  quickActions([{ label: t('booking.quick.weekly'), patch: { frequency: 'Weekly' } }, { label: t('booking.quick.deep'), patch: { extras: ['Deep clean'] } }]);
+  appendMessage('assistant', t('booking.chat.welcome', 'Welcome to CleanAI.'));
+  quickActions([{ label: t('booking.quick.weekly', 'Weekly'), patch: { frequency: 'Weekly' } }, { label: t('booking.quick.deep', 'Deep clean'), patch: { extras: ['Deep clean'] } }]);
 
   document.getElementById('chat-form')?.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -382,7 +400,7 @@ async function submitBooking() {
   const draft = getBookingDraft();
   const missing = missingBookingFields(draft);
   if (missing.length) {
-    appendMessage('assistant', `${t('booking.missing')} ${missing.join(', ')}`);
+    appendMessage('assistant', `${t('booking.missing', 'Missing fields:')} ${missing.join(', ')}`);
     return;
   }
   const estimate = estimateBooking(draft);
@@ -396,11 +414,11 @@ async function submitBooking() {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Booking failed');
     addBooking({ ...record, bookingId: result.bookingId || crypto.randomUUID?.() || Date.now().toString() });
-    appendMessage('assistant', t('booking.confirmed'));
+    appendMessage('assistant', t('booking.confirmed', 'Booking draft submitted.'));
   } catch (error) {
     console.error(error);
     addBooking({ ...record, bookingId: `LOCAL-${Date.now()}` });
-    appendMessage('assistant', t('booking.savedLocal'));
+    appendMessage('assistant', t('booking.savedLocal', 'Saved locally.'));
   }
 }
 
@@ -475,10 +493,10 @@ function renderProviderApplicationSummary() {
   if (!node) return;
   const draft = getProfile().providerDraft || {};
   node.innerHTML = `
-    ${summaryRow(t('provider.field.area'), draft.serviceArea || '—')}
-    ${summaryRow(t('provider.field.categories'), draft.categories?.join(', ') || '—')}
-    ${summaryRow(t('provider.field.rate'), draft.hourlyRate || '—')}
-    ${summaryRow(t('provider.field.languages'), draft.languages || '—')}
+    ${summaryRow(t('provider.field.area', 'Service area'), draft.serviceArea || '—')}
+    ${summaryRow(t('provider.field.categories', 'Categories'), draft.categories?.join(', ') || '—')}
+    ${summaryRow(t('provider.field.rate', 'Rate'), draft.hourlyRate || '—')}
+    ${summaryRow(t('provider.field.languages', 'Languages'), draft.languages || '—')}
   `;
 }
 
@@ -487,7 +505,7 @@ async function submitProviderApplication(event) {
   const form = event.currentTarget;
   const providerData = providerFormData(form);
   if (!providerData.serviceArea || !providerData.hourlyRate) {
-    setError('provider-error', t('provider.error.required'));
+    setError('provider-error', t('provider.error.required', 'Add service area and hourly rate.'));
     return;
   }
   const application = { ...providerData, status: 'pending', submittedAt: new Date().toISOString(), applicationId: `LOCAL-${Date.now()}` };
@@ -538,7 +556,7 @@ function renderDemoJobs(list) {
     <article class="surface-card rounded-2xl p-4 text-sm">
       <div class="flex items-center justify-between"><p class="font-semibold text-white">${escapeHTML(job.title)}</p><span class="pill">${escapeHTML(job.price)}</span></div>
       <p class="mt-1 text-gray-300">${escapeHTML(job.location)}</p>
-      <button class="mt-3 btn-secondary rounded-full px-3 py-1 text-xs" data-job="${escapeHTML(job.id)}">${escapeHTML(t('provider.feed.accept'))}</button>
+      <button class="mt-3 btn-secondary rounded-full px-3 py-1 text-xs" data-job="${escapeHTML(job.id)}">${escapeHTML(t('provider.feed.accept', 'Accept'))}</button>
     </article>
   `).join('');
 }
