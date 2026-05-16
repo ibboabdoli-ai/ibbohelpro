@@ -1,3 +1,5 @@
+export {};
+
 type BookingDraft = {
   category?: string;
   address?: string;
@@ -6,6 +8,14 @@ type BookingDraft = {
   dateTime?: string;
   extras?: string[];
   notes?: string;
+};
+
+type AiResponse = {
+  assistantMessage?: string;
+  bookingPatch?: BookingDraft;
+  missingFields?: string[];
+  quickActions?: Array<{ text?: string; val?: string }>;
+  mode?: string;
 };
 
 const bookingKey = 'cleanai_booking_draft';
@@ -20,16 +30,14 @@ function readBookingDraft(): BookingDraft {
   }
 }
 
-function saveBookingDraft(update: BookingDraft) {
+function saveBookingDraft(update: BookingDraft = {}) {
   const current = readBookingDraft();
   const next = { ...current, ...update };
+  if (Array.isArray(update.extras)) {
+    next.extras = Array.from(new Set([...(current.extras || []), ...update.extras].filter(Boolean)));
+  }
   localStorage.setItem(bookingKey, JSON.stringify(next));
   return next;
-}
-
-function text(value: unknown, fallback = '—') {
-  const output = String(value ?? '').trim();
-  return output || fallback;
 }
 
 function escapeHTML(value: unknown) {
@@ -41,13 +49,18 @@ function escapeHTML(value: unknown) {
     .replace(/'/g, '&#039;');
 }
 
+function getCurrentLanguage() {
+  const lang = localStorage.getItem('lang') || document.documentElement.lang || 'en';
+  return lang.startsWith('sv') ? 'sv' : lang.slice(0, 2) || 'en';
+}
+
 function categoryLabel(category?: string) {
   const labels: Record<string, string> = {
     home: 'Private home',
     office: 'Office',
     hotel: 'Hotel'
   };
-  return labels[category || ''] || text(category);
+  return labels[category || ''] || category || '—';
 }
 
 function estimate(draft: BookingDraft) {
@@ -92,32 +105,41 @@ function row(label: string, value: unknown) {
   return `<div class="flex items-start justify-between gap-3 rounded-2xl bg-white/5 p-3 text-sm"><span class="text-gray-400">${escapeHTML(label)}</span><span class="text-right text-white">${escapeHTML(value)}</span></div>`;
 }
 
-function appendAssistantMessage(message: string) {
+function appendMessage(message: string, role: 'assistant' | 'user' = 'assistant', meta = '') {
   const stream = document.getElementById('chat-stream');
   if (!stream) return;
   const bubble = document.createElement('div');
-  bubble.className = 'assistant-bubble';
-  bubble.textContent = message;
+  bubble.className = role === 'assistant' ? 'assistant-bubble' : 'user-bubble';
+  bubble.textContent = meta ? `${meta}: ${message}` : message;
   stream.appendChild(bubble);
   stream.scrollTop = stream.scrollHeight;
 }
 
-function addQuickReply(label: string, patch: BookingDraft) {
+function clearQuickReplies() {
+  const wrap = document.getElementById('quick-replies');
+  if (wrap) wrap.innerHTML = '';
+}
+
+function addQuickReply(label: string, patchOrMessage: BookingDraft | string) {
   const wrap = document.getElementById('quick-replies');
   if (!wrap) return;
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'quick-reply';
   button.textContent = label;
-  button.addEventListener('click', () => {
-    saveBookingDraft(patch);
+  button.addEventListener('click', async () => {
+    if (typeof patchOrMessage === 'string') {
+      await sendToAi(patchOrMessage);
+      return;
+    }
+    saveBookingDraft(patchOrMessage);
     renderSummary();
-    appendAssistantMessage(`Saved: ${label}`);
+    appendMessage(`Saved: ${label}`);
   });
   wrap.appendChild(button);
 }
 
-function renderQuickReplies() {
+function renderInitialQuickReplies() {
   const wrap = document.getElementById('quick-replies');
   if (!wrap || wrap.childElementCount) return;
   addQuickReply('Address: Stockholm', { address: 'Stockholm' });
@@ -127,24 +149,52 @@ function renderQuickReplies() {
   addQuickReply('Deep clean', { extras: ['Deep clean'] });
 }
 
-function parseFreeText(value: string): BookingDraft {
-  const textValue = value.trim();
-  const lower = textValue.toLowerCase();
-  const patch: BookingDraft = {};
+function applyAiPayload(result: AiResponse) {
+  if (result.bookingPatch && Object.keys(result.bookingPatch).length) {
+    saveBookingDraft(result.bookingPatch);
+  }
 
-  if (lower.includes('stockholm')) patch.address = 'Stockholm';
-  if (lower.includes('weekly') || lower.includes('veckovis')) patch.frequency = 'Weekly';
-  if (lower.includes('biweekly') || lower.includes('varannan')) patch.frequency = 'Biweekly';
-  if (lower.includes('deep clean') || lower.includes('djuprengöring')) patch.extras = ['Deep clean'];
+  const modeLabel = result.mode === 'openai' ? 'AI' : 'Fallback';
+  appendMessage(result.assistantMessage || 'I updated your booking draft.', 'assistant', modeLabel);
+  renderSummary();
 
-  const bedrooms = textValue.match(/(\d+)\s*(-\s*\d+)?\s*(bedroom|bedrooms|room|rooms|rum)/i);
-  if (bedrooms) patch.propertySize = bedrooms[0];
+  if (Array.isArray(result.quickActions) && result.quickActions.length) {
+    clearQuickReplies();
+    result.quickActions.slice(0, 6).forEach((action) => {
+      const label = action.text || action.val || 'Continue';
+      const value = action.val || action.text || label;
+      addQuickReply(label, value);
+    });
+  }
+}
 
-  const schedule = textValue.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|måndag|tisdag|onsdag|torsdag|fredag|lördag|söndag).{0,12}(\d{1,2}[:.]?\d{0,2})/i);
-  if (schedule) patch.dateTime = schedule[0].replace('.', ':');
+async function sendToAi(message: string) {
+  const trimmed = message.trim();
+  if (!trimmed) return;
 
-  if (!Object.keys(patch).length) patch.notes = textValue;
-  return patch;
+  appendMessage(trimmed, 'user');
+  const input = document.getElementById('custom-reply') as HTMLInputElement | null;
+  if (input) input.value = '';
+
+  try {
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: trimmed,
+        lang: getCurrentLanguage(),
+        context: { bookingDraft: readBookingDraft() }
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result?.assistantMessage || 'AI request failed');
+    applyAiPayload(result);
+  } catch (error) {
+    appendMessage('AI endpoint is unavailable. I saved your note locally; check OPENAI_API_KEY and deployment logs.', 'assistant', 'Error');
+    saveBookingDraft({ notes: trimmed });
+    renderSummary();
+    console.error(error);
+  }
 }
 
 function openChat() {
@@ -153,7 +203,7 @@ function openChat() {
   empty?.classList.add('hidden');
   chat?.classList.remove('hidden');
   localStorage.setItem(bookingStartedKey, 'true');
-  renderQuickReplies();
+  renderInitialQuickReplies();
   renderSummary();
   document.getElementById('custom-reply')?.focus();
 }
@@ -166,15 +216,10 @@ function initBookingFlow() {
     openChat();
   });
 
-  document.getElementById('chat-input')?.addEventListener('submit', (event) => {
+  document.getElementById('chat-input')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const input = document.getElementById('custom-reply') as HTMLInputElement | null;
-    const value = input?.value || '';
-    if (!value.trim()) return;
-    saveBookingDraft(parseFreeText(value));
-    if (input) input.value = '';
-    appendAssistantMessage('I updated your booking draft.');
-    renderSummary();
+    await sendToAi(input?.value || '');
   });
 
   if (localStorage.getItem(bookingStartedKey) === 'true') {
