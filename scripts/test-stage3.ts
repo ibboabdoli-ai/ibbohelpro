@@ -72,6 +72,7 @@ async function main() {
   const requiredFiles = [
     'src/admin.html',
     'src/scripts/admin-main.ts',
+    'src/scripts/app-entry.ts',
     'src/scripts/provider-stage3-main.ts',
     'api/jobs/list.ts',
     'api/providers/status.ts',
@@ -81,11 +82,39 @@ async function main() {
     assert.ok(fs.existsSync(path.resolve(file)), `${file} should exist`);
   });
 
-  const providerFeed = fs.readFileSync('src/provider-feed.html', 'utf8');
-  assert.ok(providerFeed.includes('provider-stage3.js'), 'provider feed should load deploy-safe Stage 3 entry shim');
+  const removedFiles = [
+    'src/scripts/app.js',
+    'src/scripts/admin.js',
+    'src/scripts/provider-stage3.js'
+  ];
+  removedFiles.forEach((file) => {
+    assert.ok(!fs.existsSync(path.resolve(file)), `${file} should be removed after TypeScript-only entry migration`);
+  });
 
-  const providerShim = fs.readFileSync('src/scripts/provider-stage3.js', 'utf8');
-  assert.ok(providerShim.includes('provider-stage3-main.ts'), 'provider shim should delegate to TypeScript implementation');
+  const htmlFiles = [
+    'src/index.html',
+    'src/login.html',
+    'src/register.html',
+    'src/onboarding.html',
+    'src/book.html',
+    'src/provider-onboarding.html',
+    'src/provider-feed.html',
+    'src/admin.html'
+  ];
+
+  htmlFiles.forEach((file) => {
+    const html = fs.readFileSync(file, 'utf8');
+    assert.ok(!html.includes('app.js'), `${file} should not load app.js`);
+    assert.ok(!html.includes('admin.js'), `${file} should not load admin.js`);
+    assert.ok(!html.includes('provider-stage3.js'), `${file} should not load provider-stage3.js`);
+  });
+
+  const providerFeed = fs.readFileSync('src/provider-feed.html', 'utf8');
+  assert.ok(providerFeed.includes('app-entry.ts'), 'provider feed should load the shared TypeScript app entry');
+  assert.ok(providerFeed.includes('provider-stage3-main.ts'), 'provider feed should load Stage 3 TypeScript implementation directly');
+
+  const adminPage = fs.readFileSync('src/admin.html', 'utf8');
+  assert.ok(adminPage.includes('admin-main.ts'), 'admin page should load TypeScript admin implementation directly');
 
   const viteConfig = fs.readFileSync('vite.config.ts', 'utf8');
   assert.ok(viteConfig.includes('admin.html'), 'admin page should be included in Vite build');
