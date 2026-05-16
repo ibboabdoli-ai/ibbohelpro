@@ -23,6 +23,7 @@
       <div class="flex items-center gap-3 text-sm text-gray-300">
         <button id="language-launcher" type="button" class="rounded-full border border-white/10 px-3 py-2 text-xs text-gray-200 transition hover:border-white/30 hover:text-white" data-i18n="language.switch">Language</button>
         <a class="rounded-full border border-white/10 px-4 py-2 transition hover:border-white/30 hover:text-white" href="/provider-onboarding.html" data-i18n="provider.feed.onboarding">Onboarding</a>
+        <a class="rounded-full border border-white/10 px-4 py-2 transition hover:border-white/30 hover:text-white" href="/admin.html">Admin</a>
         <button id="logout" class="rounded-full border border-white/10 px-4 py-2 transition hover:border-white/30 hover:text-white" data-i18n="app.logout">Logout</button>
       </div>
     </div>
@@ -76,20 +77,20 @@
               <p class="text-xs uppercase tracking-[0.2em] text-gray-400">Profile</p>
               <p class="text-lg font-semibold text-white">Provider</p>
             </div>
-            <span class="badge badge-emerald">Placeholder</span>
+            <span class="badge badge-emerald">Stage 3</span>
           </div>
-          <p class="mt-2 text-sm text-gray-300">Add availability, categories, and pricing in onboarding. We keep this card ready for live data.</p>
+          <p class="mt-2 text-sm text-gray-300">Provider status sync and open jobs are connected through server routes with local demo fallback.</p>
         </div>
         <div class="summary-card p-4">
           <p class="text-sm font-semibold text-white">Document verification</p>
-          <p class="text-xs text-gray-400">Upload placeholder lives in onboarding. We’ll render the latest status here once APIs exist.</p>
+          <p class="text-xs text-gray-400">Upload placeholder lives in onboarding. Admin review can approve or reject the provider application.</p>
         </div>
         <div class="summary-card p-4">
           <p class="text-sm font-semibold text-white">Helpful links</p>
           <ul class="mt-2 list-disc list-inside text-sm text-gray-300">
-            <li>Job feed unlock instructions</li>
-            <li>Customer-safe guardrails</li>
-            <li>Profile completeness checklist</li>
+            <li>Status sync after admin approval</li>
+            <li>Dynamic job list API</li>
+            <li>Accept/decline response tracking</li>
           </ul>
         </div>
       </aside>
@@ -97,5 +98,6 @@
   </div>
 
   <script type="module" src="./scripts/app.js"></script>
+  <script type="module" src="./scripts/provider-stage3.js"></script>
 </body>
 </html>

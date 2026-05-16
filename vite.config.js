@@ -19,7 +19,8 @@ export default defineConfig({
         onboarding: resolve(__dirname, 'src/onboarding.html'),
         book: resolve(__dirname, 'src/book.html'),
         providerOnboarding: resolve(__dirname, 'src/provider-onboarding.html'),
-        providerFeed: resolve(__dirname, 'src/provider-feed.html')
+        providerFeed: resolve(__dirname, 'src/provider-feed.html'),
+        admin: resolve(__dirname, 'src/admin.html')
       }
     }
   }
