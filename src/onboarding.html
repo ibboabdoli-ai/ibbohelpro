@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Choose your CleanAI role and service segment before continuing to booking or provider onboarding.">
+  <title>CleanAI — Onboarding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body class="min-h-screen bg-gray-950 text-white" data-page="onboarding">
+  <div class="app-shell">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-bold">CAI</div>
+        <div>
+          <p class="text-sm uppercase tracking-[0.2em] text-gray-400" data-i18n="app.brand">CleanAI</p>
+          <p class="text-sm text-gray-300" data-i18n="onboarding.header.subtitle">Secure onboarding</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 text-sm">
+        <button id="language-launcher" type="button" class="rounded-full border border-white/10 px-4 py-2 text-gray-200 transition hover:border-white/30 hover:text-white" data-i18n="language.switch">Language</button>
+        <a class="rounded-full border border-white/10 px-4 py-2 text-gray-300 transition hover:border-white/30 hover:text-white" href="/book.html" data-i18n="onboarding.header.chat">Booking chat</a>
+        <span id="onboarding-user" class="text-gray-300"></span>
+        <button id="logout" class="rounded-full border border-white/10 px-4 py-2 text-gray-300 transition hover:border-white/30 hover:text-white" data-i18n="app.logout">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
+    <div class="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
+      <div class="space-y-6">
+        <div>
+          <p class="pill w-fit" data-i18n="onboarding.hero.badge">Step 1</p>
+          <h1 class="mt-2 text-3xl font-bold text-white sm:text-4xl" data-i18n="onboarding.hero.title">Who are you?</h1>
+          <p class="mt-2 text-gray-300" data-i18n="onboarding.hero.subtitle">Choose your role to unlock the right guided flow. We keep state locally for now and left a TODO for server persistence.</p>
+        </div>
+
+        <div class="panel-strong rounded-3xl p-4 text-sm text-gray-200">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="font-semibold text-white" data-i18n="onboarding.role.title">Role selector</p>
+              <p class="text-xs text-gray-400" data-i18n="onboarding.role.subtitle">Cleaner / Private home / Office / Hotel choices save to your profile or local state.</p>
+            </div>
+            <span class="badge badge-emerald" data-i18n="onboarding.role.badge">First-time friendly</span>
+          </div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <button class="role-card rounded-3xl border border-white/10 bg-white/5 p-5 text-left" data-role="customer">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-white" data-i18n="onboarding.role.customer.title">Customer</h2>
+              <span class="pill" data-i18n="onboarding.role.customer.badge">Booking</span>
+            </div>
+            <p class="mt-2 text-sm text-gray-300" data-i18n="onboarding.role.customer.text">Book home, office, or hotel cleaning in a structured chat with a live draft.</p>
+          </button>
+          <button class="role-card rounded-3xl border border-white/10 bg-white/5 p-5 text-left" data-role="provider">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-white" data-i18n="onboarding.role.provider.title">Cleaner / Provider</h2>
+              <span class="pill" data-i18n="onboarding.role.provider.badge">Onboarding</span>
+            </div>
+            <p class="mt-2 text-sm text-gray-300" data-i18n="onboarding.role.provider.text">Offer services with a 5-step wizard and approval gate before accessing jobs.</p>
+          </button>
+        </div>
+
+        <div id="category-section" class="hidden rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="pill w-fit" data-i18n="onboarding.category.badge">Customer</p>
+              <h2 class="mt-2 text-xl font-semibold" data-i18n="onboarding.category.title">What do you need cleaned?</h2>
+            </div>
+            <span class="rounded-full bg-white/10 px-3 py-1 text-xs text-gray-300" data-i18n="onboarding.category.required">Required</span>
+          </div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-3">
+            <button class="category-card rounded-2xl border border-white/10 bg-gray-900/70 px-4 py-3 text-left" data-category="home" data-i18n="onboarding.category.home">Private home</button>
+            <button class="category-card rounded-2xl border border-white/10 bg-gray-900/70 px-4 py-3 text-left" data-category="office" data-i18n="onboarding.category.office">Office</button>
+            <button class="category-card rounded-2xl border border-white/10 bg-gray-900/70 px-4 py-3 text-left" data-category="hotel" data-i18n="onboarding.category.hotel">Hotel</button>
+          </div>
+          <p class="mt-3 text-sm text-gray-400" data-i18n="onboarding.category.helper">We keep your pick in localStorage for now. TODO: POST to user profile endpoint when available.</p>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button id="continue-onboarding" class="btn-primary rounded-full px-6 py-3 text-sm font-semibold" data-i18n="onboarding.cta">Continue</button>
+          <a class="btn-secondary rounded-full px-6 py-3 text-sm" href="/login.html" data-i18n="onboarding.switch">Switch account</a>
+        </div>
+        <p id="onboarding-error" class="text-sm text-rose-300"></p>
+      </div>
+
+      <aside class="glass-card rounded-3xl p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-gray-400" data-i18n="onboarding.tracker.title">Progress</p>
+            <p class="text-lg font-semibold text-white" data-i18n="onboarding.tracker.subtitle">Onboarding tracker</p>
+          </div>
+          <span id="onboarding-status" class="pill" data-i18n="status.draft">Draft</span>
+        </div>
+        <div class="mt-4 space-y-3 text-sm text-gray-300">
+          <div class="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+            <span data-i18n="onboarding.tracker.role">Role captured</span>
+            <span id="role-status" class="pill" data-i18n="status.pending">Pending</span>
+          </div>
+          <div class="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+            <span data-i18n="onboarding.tracker.category">Customer category</span>
+            <span id="category-status" class="pill" data-i18n="status.pending">Pending</span>
+          </div>
+          <div class="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
+            <span data-i18n="onboarding.tracker.provider">Provider wizard</span>
+            <span id="provider-status" class="pill" data-i18n="status.draft">Draft</span>
+          </div>
+        </div>
+        <div class="mt-4 rounded-2xl border border-white/10 bg-gray-900/70 p-4 text-sm text-gray-300">
+          <p class="font-semibold text-white" data-i18n="onboarding.next.title">Next steps</p>
+          <ul class="mt-2 list-disc list-inside space-y-1">
+            <li data-i18n="onboarding.next.point1">Customers: select a category then jump into booking chat.</li>
+            <li data-i18n="onboarding.next.point2">Providers: continue to the onboarding wizard.</li>
+            <li data-i18n="onboarding.next.point3">We redirect unauthed users back to login for safety.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>

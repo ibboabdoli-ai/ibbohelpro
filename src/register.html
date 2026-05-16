@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Create a CleanAI account to request cleaning or join as a verified provider.">
+  <title>CleanAI — Register</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body class="min-h-screen bg-gray-950 text-white" data-page="register">
+  <div class="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-10">
+    <header class="mb-8 flex items-center justify-between">
+      <a class="flex items-center gap-3" href="/index.html">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-bold">CAI</div>
+        <div>
+          <p class="text-sm uppercase tracking-[0.2em] text-gray-400" data-i18n="app.brand">CleanAI</p>
+          <p class="text-sm text-gray-300" data-i18n="auth.tagline">Premium cleaning</p>
+        </div>
+      </a>
+      <div class="flex items-center gap-3">
+        <button id="language-launcher" type="button" class="rounded-full border border-white/10 px-3 py-2 text-xs text-gray-200 transition hover:border-white/30 hover:text-white" data-i18n="language.switch">Language</button>
+        <a class="text-sm font-semibold text-gray-300 underline-offset-4 hover:text-white" href="/login.html" data-i18n="auth.register.switch">Have an account? Log in</a>
+      </div>
+    </header>
+
+    <div class="grid gap-10 lg:grid-cols-2">
+      <div class="space-y-4">
+        <p class="pill w-fit" data-i18n="auth.register.badge">New to CleanAI</p>
+        <h1 class="text-3xl font-bold sm:text-4xl" data-i18n="auth.register.title">Create your account</h1>
+        <p class="text-gray-300" data-i18n="auth.register.subtitle">We route you to a guided onboarding so you can book cleaning as a customer or start offering services as a provider.</p>
+        <div class="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-gray-300">
+          <p class="font-semibold text-white" data-i18n="auth.register.next.title">What happens next</p>
+          <ul class="mt-2 space-y-1 list-disc list-inside">
+            <li data-i18n="auth.register.next.point1">We collect role (customer or provider) in onboarding.</li>
+            <li data-i18n="auth.register.next.point2">Customer path goes to category selection then booking chat.</li>
+            <li data-i18n="auth.register.next.point3">Provider path goes to a 5-step wizard with progress.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card rounded-3xl p-6">
+        <form id="register-form" class="space-y-4" novalidate>
+          <div>
+            <label class="block text-sm text-gray-300" for="register-name" data-i18n="auth.fullName">Full name</label>
+            <input id="register-name" name="name" type="text" required placeholder="Ada Lovelace" class="mt-2 w-full rounded-2xl bg-gray-900/60 px-4 py-3 text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-emerald-400" data-i18n-attr="placeholder" data-i18n-key="auth.fullName.placeholder">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-300" for="register-email" data-i18n="auth.email">Email</label>
+            <input id="register-email" name="email" type="email" required placeholder="you@example.com" class="mt-2 w-full rounded-2xl bg-gray-900/60 px-4 py-3 text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-emerald-400" data-i18n-attr="placeholder" data-i18n-key="auth.email.placeholder">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-300" for="register-password" data-i18n="auth.password">Password</label>
+            <input id="register-password" name="password" type="password" required minlength="8" placeholder="At least 8 characters" class="mt-2 w-full rounded-2xl bg-gray-900/60 px-4 py-3 text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-emerald-400" data-i18n-attr="placeholder" data-i18n-key="auth.password.fullPlaceholder">
+            <p class="mt-1 text-xs text-gray-400" data-i18n="auth.register.passwordHint">Store locally for demo only. Replace with server-side auth when ready.</p>
+          </div>
+          <div class="text-sm text-rose-300" id="register-error" role="alert"></div>
+          <button type="submit" class="btn-primary w-full rounded-2xl py-3 text-center text-sm font-semibold" data-i18n="auth.register.cta">Register & continue</button>
+          <p class="text-center text-sm text-gray-400" data-i18n-html="true" data-i18n="auth.register.helper">Already here to provide services? <a class="text-indigo-200 underline-offset-4 hover:text-indigo-100" href="#provider">Jump to provider onboarding after sign-up</a></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>

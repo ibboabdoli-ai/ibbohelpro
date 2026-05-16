@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Complete provider onboarding details including service area, pricing, verification, and profile information.">
+  <title>CleanAI — Provider onboarding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body class="bg-gray-950 text-white" data-page="provider-onboarding">
+  <div class="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
+    <header class="mb-8 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-bold">CAI</div>
+        <div>
+          <p class="text-sm uppercase tracking-[0.2em] text-gray-400" data-i18n="app.brand">CleanAI</p>
+          <p class="text-sm text-gray-300" data-i18n="provider.header.subtitle">Provider onboarding</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 text-sm text-gray-300">
+        <button id="language-launcher" type="button" class="rounded-full border border-white/10 px-3 py-2 text-xs text-gray-200 transition hover:border-white/30 hover:text-white" data-i18n="language.switch">Language</button>
+        <a class="underline-offset-4 hover:text-white" href="/provider-feed.html" data-i18n="provider.header.feed">Job feed</a>
+        <button id="logout" class="rounded-full border border-white/10 px-4 py-2 text-gray-300 hover:border-white/30 hover:text-white" data-i18n="app.logout">Logout</button>
+      </div>
+    </header>
+
+    <div class="glass-card rounded-3xl p-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p class="pill w-fit" data-i18n="provider.hero.badge">Provider wizard</p>
+          <h1 class="mt-2 text-3xl font-bold" data-i18n="provider.hero.title">Complete your profile</h1>
+          <p class="text-gray-300" data-i18n="provider.hero.subtitle">Basics → Availability → Pricing → Verification → Profile. We lock the feed until you submit.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="h-2 w-40 overflow-hidden rounded-full bg-white/10">
+            <div id="provider-progress-bar" class="h-full w-1/5 bg-gradient-to-r from-indigo-400 to-emerald-400"></div>
+          </div>
+          <span id="provider-progress-label" class="text-sm text-gray-300">Step 1 of 5</span>
+        </div>
+      </div>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-[1.1fr,1fr]">
+        <form id="provider-form" class="space-y-6">
+          <div class="step-card" data-step="basics">
+            <h2 class="text-xl font-semibold">Basics</h2>
+            <p class="text-sm text-gray-400">Tell us who you are and where you operate.</p>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="provider-type" class="text-sm text-gray-300">Type</label>
+                <select id="provider-type" name="type" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400">
+                  <option value="individual">Individual</option>
+                  <option value="company">Company</option>
+                </select>
+              </div>
+              <div>
+                <label for="provider-service-area" class="text-sm text-gray-300">Service area</label>
+                <input id="provider-service-area" name="serviceArea" placeholder="Berlin, Amsterdam, etc" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400">
+              </div>
+            </div>
+            <div class="mt-3">
+              <label class="text-sm text-gray-300">Categories</label>
+              <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                <label class="category-pill"><input type="checkbox" name="categories" value="home"> Home</label>
+                <label class="category-pill"><input type="checkbox" name="categories" value="office"> Office</label>
+                <label class="category-pill"><input type="checkbox" name="categories" value="hotel"> Hotel</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card hidden" data-step="availability">
+            <h2 class="text-xl font-semibold">Availability</h2>
+            <p class="text-sm text-gray-400">Let customers know when you can take jobs.</p>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="provider-weekdays" class="text-sm text-gray-300">Weekdays</label>
+                <input id="provider-weekdays" name="weekdays" placeholder="Mon-Fri 8:00-18:00" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400">
+              </div>
+              <div>
+                <label for="provider-weekends" class="text-sm text-gray-300">Weekends</label>
+                <input id="provider-weekends" name="weekends" placeholder="Sat 9:00-14:00" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400">
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card hidden" data-step="pricing">
+            <h2 class="text-xl font-semibold">Pricing</h2>
+            <p class="text-sm text-gray-400">Share transparent pricing for faster approvals.</p>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="provider-hourly-rate" class="text-sm text-gray-300">Hourly rate</label>
+                <input id="provider-hourly-rate" name="hourlyRate" type="number" min="10" step="1" placeholder="€25" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400">
+              </div>
+              <div>
+                <label for="provider-callout-fee" class="text-sm text-gray-300">Call-out fee</label>
+                <input id="provider-callout-fee" name="calloutFee" type="number" min="0" step="1" placeholder="€0" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400">
+              </div>
+            </div>
+          </div>
+
+          <div class="step-card hidden" data-step="verification">
+            <h2 class="text-xl font-semibold">Verification uploads</h2>
+            <p class="text-sm text-gray-400">Upload IDs or licenses. UI-only until backend is ready; we store metadata locally.</p>
+            <div class="mt-4 space-y-2">
+              <label for="provider-verification-file" class="block text-sm text-gray-300">Upload file (placeholder)</label>
+              <input id="provider-verification-file" name="verificationFile" type="file" accept="image/*,application/pdf" class="w-full rounded-2xl border border-dashed border-white/20 bg-gray-900/70 px-4 py-6 text-sm text-gray-300">
+              <p class="text-xs text-gray-400">TODO: replace with secure upload endpoint. We do not transmit files yet.</p>
+            </div>
+          </div>
+
+          <div class="step-card hidden" data-step="profile">
+            <h2 class="text-xl font-semibold">Profile</h2>
+            <p class="text-sm text-gray-400">Share a bio, languages, and links. Customers see this after approval.</p>
+            <div class="mt-4 space-y-3">
+              <div>
+                <label for="provider-bio" class="text-sm text-gray-300">Bio</label>
+                <textarea id="provider-bio" name="bio" rows="3" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400" placeholder="Tell customers about your expertise"></textarea>
+              </div>
+              <div>
+                <label for="provider-languages" class="text-sm text-gray-300">Languages</label>
+                <input id="provider-languages" name="languages" placeholder="English, German" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400">
+              </div>
+              <div>
+                <label for="provider-portfolio" class="text-sm text-gray-300">Portfolio link (optional)</label>
+                <input id="provider-portfolio" name="portfolio" type="url" placeholder="https://" class="mt-2 w-full rounded-2xl bg-gray-900/70 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-400">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <button id="prev-step" type="button" class="rounded-full border border-white/10 px-4 py-2 text-sm text-gray-300 hover:border-white/30 hover:text-white">Back</button>
+            <div class="flex items-center gap-2">
+              <button id="save-draft" type="button" class="rounded-full border border-white/10 px-4 py-2 text-sm text-gray-300 hover:border-white/30 hover:text-white">Save draft</button>
+              <button id="next-step" type="button" class="btn-primary rounded-full px-6 py-2 text-sm font-semibold">Next</button>
+            </div>
+          </div>
+          <p id="provider-error" class="text-sm text-rose-300"></p>
+        </form>
+
+        <aside class="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-gray-300">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-gray-400">Status</p>
+              <p class="text-lg font-semibold text-white" id="provider-status">Draft</p>
+            </div>
+            <span class="pill" id="provider-badge">Draft</span>
+          </div>
+          <div class="mt-3 space-y-2">
+            <p class="font-semibold text-white">What to expect</p>
+            <ul class="list-disc list-inside space-y-1">
+              <li>Complete all steps, then submit for review.</li>
+              <li>Job feed stays locked until status is Approved.</li>
+              <li>We keep progress locally to avoid data loss.</li>
+            </ul>
+          </div>
+          <button id="submit-provider" class="btn-secondary mt-4 w-full rounded-2xl px-4 py-3 text-sm font-semibold">Submit for review</button>
+          <p class="mt-2 text-xs text-emerald-300" id="provider-feedback"></p>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>

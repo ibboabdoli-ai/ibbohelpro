@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Book trusted home, office, and hotel cleaning with guided quotes, transparent estimates, and verified cleaning professionals.">
+  <title>CleanAI — Premium multi-tenant cleaning platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body class="min-h-screen bg-gradient-to-b from-gray-950 via-gray-950 to-black text-white" data-page="landing">
+  <header class="sticky top-0 z-50 border-b border-white/5 bg-gray-900/70 backdrop-blur-xl">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-bold">CAI</div>
+        <div>
+          <p class="text-sm uppercase tracking-[0.2em] text-gray-400" data-i18n="app.brand">CleanAI</p>
+          <p class="text-sm text-gray-300" data-i18n="landing.header.subtitle">Trusted cleaning across Europe</p>
+        </div>
+      </div>
+      <nav class="hidden items-center gap-6 text-sm font-medium text-gray-300 sm:flex">
+        <a class="nav-link hover:text-white transition" href="#why" data-i18n="nav.why">Why CleanAI</a>
+        <a class="nav-link hover:text-white transition" href="#flows" data-i18n="nav.customer">Customer</a>
+        <a class="nav-link hover:text-white transition" href="#providers" data-i18n="nav.providers">Providers</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button id="language-launcher" type="button" class="rounded-full border border-white/10 px-4 py-2 text-sm text-gray-200 transition hover:border-white/30 hover:text-white" data-i18n="language.switch">Language</button>
+        <a class="btn-secondary rounded-full px-4 py-2 text-sm" href="/login.html" data-i18n="nav.login">Log in</a>
+        <a class="btn-primary rounded-full px-4 py-2 text-sm" href="/register.html" data-i18n="nav.start">Get started</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-6 pb-20 pt-16 sm:pt-24">
+    <section class="grid gap-8 lg:grid-cols-[1.4fr,1.2fr]">
+      <div class="space-y-6">
+        <p class="pill animate w-fit" data-i18n="landing.hero.badge">Multi-tenant · Secure · AI-guided</p>
+        <h1 class="text-4xl font-bold leading-tight text-white sm:text-5xl" data-i18n="landing.hero.title">
+          Book trusted home, office, or hotel cleaning in minutes.
+        </h1>
+        <p class="text-lg text-gray-300" data-i18n="landing.hero.subtitle">
+          A guided quote-first journey with transparent pricing, RBAC-safe onboarding, and AI that nudges—not overwhelms.
+        </p>
+        <form id="landing-intake" class="glass-card grid gap-3 rounded-3xl p-4 sm:grid-cols-[1.2fr,1fr]">
+          <div class="sm:col-span-2 text-sm text-gray-300" data-i18n="landing.form.intro">Tell us where and what you need cleaned to get a price & availability.</div>
+          <label class="flex flex-col gap-2 text-sm text-gray-300">
+            <span data-i18n="landing.form.locationLabel">Location (ZIP / city)</span>
+            <input name="location" required placeholder="e.g., 10117 Berlin" class="rounded-2xl bg-gray-900/60 px-4 py-3 text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-emerald-400" data-i18n-attr="placeholder" data-i18n-key="landing.form.locationPlaceholder">
+            <button id="landing-use-location" type="button" class="w-fit rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300 transition hover:border-white/30 hover:text-white" data-i18n="landing.form.useLocation">Use current location</button>
+            <span class="text-xs text-gray-500" data-i18n="landing.form.locationConsent">We only ask for location after you click this button.</span>
+          </label>
+          <div class="flex flex-col gap-2 text-sm text-gray-300">
+            <span data-i18n="landing.form.segmentLabel">Segment</span>
+            <div class="inline-flex flex-wrap gap-2" role="group" aria-label="Segment selector">
+              <button type="button" data-segment="home" class="chip" data-i18n="landing.segment.home">Home</button>
+              <button type="button" data-segment="office" class="chip" data-i18n="landing.segment.office">Office</button>
+              <button type="button" data-segment="hotel" class="chip" data-i18n="landing.segment.hotel">Hotel</button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary rounded-2xl py-3 text-sm font-semibold sm:col-span-2" data-i18n="landing.form.submit">Get price & availability</button>
+          <p class="text-xs text-gray-400 sm:col-span-2" data-i18n="landing.form.helper">AI helper: “I can get your quote in 60 seconds. Home, office, or hotel?”</p>
+          <p id="landing-error" class="text-sm text-rose-300 sm:col-span-2"></p>
+        </form>
+        <div class="grid gap-3 text-sm text-gray-300 sm:grid-cols-2">
+          <div class="surface-card rounded-2xl p-4">
+            <p class="font-semibold text-white" data-i18n="landing.trust.title">Trust</p>
+            <p class="mt-1" data-i18n="landing.trust.text">✅ Insurance · 🧼 Verified pros · 🚫 No long contracts</p>
+          </div>
+          <div class="surface-card rounded-2xl p-4">
+            <p class="font-semibold text-white" data-i18n="landing.fast.title">Fast</p>
+            <p class="mt-1" data-i18n="landing.fast.text">Quote wizard → Onboarding → Booking chat with live draft.</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card rounded-3xl border border-white/10 p-6 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-white/5 pb-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-gray-400" data-i18n="landing.preview.title">Quote preview</p>
+            <p class="text-lg font-semibold text-white" data-i18n="landing.preview.subtitle">Home · 2 bed · Weekly</p>
+          </div>
+          <span class="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300" data-i18n="landing.preview.badge">Deterministic</span>
+        </div>
+        <div class="mt-4 space-y-3 text-sm text-gray-300">
+          <div class="flex items-start justify-between rounded-2xl bg-white/5 px-4 py-3">
+            <div>
+              <p class="text-white" data-i18n="landing.preview.estimate">Estimate</p>
+              <p class="text-gray-400" data-i18n="landing.preview.estimateDetail">2.5 hours · €110</p>
+            </div>
+            <span class="pill" data-i18n="landing.preview.pill1">No surprises</span>
+          </div>
+          <div class="flex items-start justify-between rounded-2xl bg-white/5 px-4 py-3">
+            <div>
+              <p class="text-white" data-i18n="landing.preview.included">Included</p>
+              <p class="text-gray-400" data-i18n="landing.preview.includedDetail">Surfaces, floors, bathrooms, kitchen wipe-down</p>
+            </div>
+            <span class="pill" data-i18n="landing.preview.pill2">Checklist</span>
+          </div>
+          <div class="flex items-start justify-between rounded-2xl bg-white/5 px-4 py-3">
+            <div>
+              <p class="text-white" data-i18n="landing.preview.addons">Add-ons</p>
+              <p class="text-gray-400" data-i18n="landing.preview.addonsDetail">Oven · Windows · Deep clean</p>
+            </div>
+            <span class="pill" data-i18n="landing.preview.pill3">Optional</span>
+          </div>
+        </div>
+        <div class="mt-6 rounded-2xl border border-white/5 bg-gradient-to-br from-gray-900 to-gray-800 p-4">
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-gray-300" data-i18n="landing.preview.ctaTitle">Ready to finish?</p>
+            <div class="flex gap-2">
+              <a class="btn-secondary rounded-full px-4 py-2 text-xs" href="/login.html" data-i18n="landing.preview.resume">Resume</a>
+              <a class="btn-primary rounded-full px-4 py-2 text-xs" href="/register.html" data-i18n="landing.preview.start">Start new</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="why" class="mt-20 grid gap-6 rounded-3xl border border-white/5 bg-white/5 p-6 sm:grid-cols-3 sm:p-8">
+      <div class="space-y-2">
+        <p class="pill" data-i18n="landing.why.security.badge">Security</p>
+        <h2 class="text-xl font-semibold" data-i18n="landing.why.security.title">Multi-tenant safe</h2>
+        <p class="text-gray-300 text-sm" data-i18n="landing.why.security.text">RBAC guards keep customer and provider areas separated with guided onboarding.</p>
+      </div>
+      <div class="space-y-2">
+        <p class="pill" data-i18n="landing.why.performance.badge">Performance</p>
+        <h2 class="text-xl font-semibold" data-i18n="landing.why.performance.title">Fast & responsive</h2>
+        <p class="text-gray-300 text-sm" data-i18n="landing.why.performance.text">Vite-powered static delivery with minimal dependencies for low latency.</p>
+      </div>
+      <div class="space-y-2">
+        <p class="pill" data-i18n="landing.why.clarity.badge">Clarity</p>
+        <h2 class="text-xl font-semibold" data-i18n="landing.why.clarity.title">ChatGPT-simple UI</h2>
+        <p class="text-gray-300 text-sm" data-i18n="landing.why.clarity.text">Structured chat, quick replies, and live booking summaries keep flows deterministic.</p>
+      </div>
+    </section>
+
+    <section id="flows" class="mt-16 grid gap-6 lg:grid-cols-2">
+      <div class="surface-card rounded-3xl p-6">
+        <p class="pill mb-3" data-i18n="landing.customer.badge">Customers</p>
+        <h3 class="text-xl font-semibold text-white" data-i18n="landing.customer.title">Register → Role → Category → Booking chat</h3>
+        <ul class="mt-4 space-y-2 text-sm text-gray-300">
+          <li data-i18n="landing.customer.point1">• Login & Register routes with inline validation.</li>
+          <li data-i18n="landing.customer.point2">• Onboarding gate captures role & cleaning category.</li>
+          <li data-i18n="landing.customer.point3">• Guided chat captures address, size, frequency, schedule, and extras.</li>
+          <li data-i18n="landing.customer.point4">• Booking Draft & Quote summary stays visible on desktop, slides in on mobile.</li>
+        </ul>
+        <a class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 hover:text-emerald-200" href="/register.html">
+          <span data-i18n="landing.customer.cta">Start customer flow</span>
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
+      <div id="providers" class="surface-card rounded-3xl p-6">
+        <p class="pill mb-3" data-i18n="landing.provider.badge">Providers</p>
+        <h3 class="text-xl font-semibold text-white" data-i18n="landing.provider.title">Onboarding wizard with progress</h3>
+        <ul class="mt-4 space-y-2 text-sm text-gray-300">
+          <li data-i18n="landing.provider.point1">• Basics → Availability → Pricing → Verification → Profile steps.</li>
+          <li data-i18n="landing.provider.point2">• Progress indicator and save-as-draft data persistence.</li>
+          <li data-i18n="landing.provider.point3">• Job feed locked behind review, with clear pending CTA.</li>
+          <li data-i18n="landing.provider.point4">• Secure access: customers cannot see provider routes, and vice versa.</li>
+        </ul>
+        <a class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-indigo-200 hover:text-indigo-100" href="/register.html#provider">
+          <span data-i18n="landing.provider.cta">Start provider flow</span>
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>

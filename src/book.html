@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Use the CleanAI guided booking chat to build a cleaning request with live estimate and structured summary.">
+  <title>CleanAI — Booking chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body class="bg-gray-950 text-white" data-page="book">
+  <header class="app-shell sticky top-0 z-40">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-bold">CAI</div>
+        <div>
+          <p class="text-sm uppercase tracking-[0.2em] text-gray-400" data-i18n="app.brand">CleanAI</p>
+          <p class="text-sm text-gray-300" data-i18n="booking.header.subtitle">Booking workspace</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-sm">
+        <button class="rounded-full border border-white/10 px-4 py-2 text-gray-200 transition hover:border-white/30 hover:text-white" id="language-launcher" type="button" data-i18n="language.switch">Language</button>
+        <a class="rounded-full border border-white/10 px-4 py-2 text-gray-200 transition hover:border-white/30 hover:text-white" href="/onboarding.html" data-i18n="booking.header.help">Help & onboarding</a>
+        <button class="rounded-full border border-white/10 px-4 py-2 text-gray-200 transition hover:border-white/30 hover:text-white lg:hidden" id="toggle-summary" data-i18n="booking.header.summary" type="button">Summary</button>
+        <button id="logout" class="rounded-full border border-white/10 px-4 py-2 text-gray-200 transition hover:border-white/30 hover:text-white" data-i18n="app.logout" type="button">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-6 lg:py-10">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="pill w-fit" data-i18n="booking.hero.badge">Guided booking</p>
+        <h1 class="mt-2 text-2xl font-semibold sm:text-3xl" data-i18n="booking.hero.title">Chat-first quote with live summary</h1>
+        <p id="booking-subtitle" class="text-sm text-gray-400"></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="customer-category-pill" class="pill hidden">Home</span>
+        <span class="badge" data-i18n="booking.hero.badge.ai">AI-assisted</span>
+        <span class="badge badge-emerald" data-i18n="booking.hero.badge.secure">Secure</span>
+      </div>
+    </div>
+
+    <div class="chat-shell mt-6">
+      <section class="panel-strong rounded-3xl p-4 sm:p-6">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-gray-400" data-i18n="booking.chat.label">Chat</p>
+            <p class="text-lg font-semibold text-white" data-i18n="booking.chat.title">CleanAI assistant</p>
+            <p class="text-xs text-gray-500" data-i18n="booking.chat.subtitle">Tap quick replies, add notes, and see updates in the summary.</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-400">
+            <span class="inline-meta"><span class="typing-dot"></span> <span data-i18n="booking.chat.structured">Structured</span></span>
+            <span class="inline-meta"><span class="typing-dot"></span> <span data-i18n="booking.chat.accessible">WCAG-friendly</span></span>
+          </div>
+        </div>
+
+        <div id="chat-empty-state" class="mt-4 rounded-2xl border border-dashed border-white/15 bg-white/5 p-4 sm:p-6">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm text-gray-300" data-i18n="booking.empty.title">Start with your role and what you need cleaned. We’ll guide you step-by-step.</p>
+              <p class="text-xs text-gray-500" data-i18n="booking.empty.subtitle">Cleaner / Private home / Office / Hotel selections are stored locally until profile APIs exist.</p>
+            </div>
+            <button id="start-booking" class="btn-primary rounded-2xl px-5 py-3 text-sm font-semibold" data-i18n="booking.empty.cta">Start booking</button>
+          </div>
+        </div>
+
+        <div id="chat-region" class="mt-4 space-y-4 rounded-2xl bg-black/20 p-4 shadow-card sm:p-5 hidden" role="region" aria-live="polite" aria-label="Booking chat">
+          <div id="chat-stream" class="chat-stream space-y-4">
+            <div class="assistant-bubble">
+              <p class="font-semibold text-white" data-i18n="booking.chat.welcome.title">Welcome to CleanAI!</p>
+              <p class="text-sm text-gray-300" data-i18n="booking.chat.welcome.subtitle">We’ll keep this structured—reply with quick chips, and we’ll update your booking draft live.</p>
+              <div class="action-card mt-3 text-sm text-gray-200">
+                <div class="flex items-center justify-between">
+                  <p class="font-semibold text-white" data-i18n="booking.chat.card.title">How we keep you on track</p>
+                  <span class="badge badge-emerald" data-i18n="booking.chat.card.badge">Live draft</span>
+                </div>
+                <ul class="mt-2 list-disc list-inside text-gray-200/90">
+                  <li data-i18n="booking.chat.card.point1">Guided prompts for address, size, cadence, and schedule.</li>
+                  <li data-i18n="booking.chat.card.point2">Quick replies mirror chip controls for keyboard users.</li>
+                  <li data-i18n="booking.chat.card.point3">Quote summary updates instantly on the right or in the drawer.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div id="quick-replies" class="flex flex-wrap gap-2" aria-label="Suggested replies"></div>
+            <form id="chat-input" class="flex flex-col gap-2 rounded-2xl border border-white/10 bg-gray-900/70 p-3 sm:flex-row sm:items-center" novalidate>
+              <label class="sr-only" for="custom-reply" data-i18n="booking.chat.input.label">Add a note</label>
+              <input type="text" id="custom-reply" data-i18n-attr="placeholder" data-i18n-key="booking.chat.input.placeholder" placeholder="Type a note or follow up (optional)" class="flex-1 rounded-xl bg-black/30 px-3 py-3 text-sm text-white outline-none" aria-label="Custom note">
+              <button type="submit" id="send-note" class="btn-ghost flex items-center justify-center gap-2 rounded-xl text-sm font-semibold">
+                <span class="sr-only" data-i18n="booking.chat.input.send">Send</span>
+                <span aria-hidden="true" data-i18n="booking.chat.input.send">Send</span>
+                <span id="send-spinner" class="hidden typing-dot"></span>
+              </button>
+            </form>
+          </div>
+          <p class="text-xs text-gray-500" data-i18n="booking.chat.helper">We call <code class="text-emerald-200">/api/ai/chat</code> when available and gracefully handle errors with retry.</p>
+        </div>
+      </section>
+
+      <aside id="booking-summary" class="glass-card hidden rounded-3xl border border-white/10 p-4 lg:sticky lg:top-24 lg:block">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-gray-400" data-i18n="booking.summary.title">Booking Draft</p>
+            <p class="text-lg font-semibold text-white" data-i18n="booking.summary.subtitle">Quote in progress</p>
+            <p class="text-xs text-gray-500" data-i18n="booking.summary.caption">Updated live as you chat.</p>
+          </div>
+          <div class="flex flex-col items-end gap-2">
+            <span id="draft-status" class="pill">Draft</span>
+            <span id="summary-segment" class="badge">Segment</span>
+          </div>
+        </div>
+        <div class="mt-4 space-y-3">
+          <div class="summary-card p-4">
+            <p class="text-sm font-semibold text-white" data-i18n="booking.summary.details">Key details</p>
+            <div id="draft-fields" class="mt-3 space-y-2 text-sm text-gray-300"></div>
+          </div>
+          <div class="summary-card p-4">
+            <p class="text-sm font-semibold text-white" data-i18n="booking.summary.estimate">Estimate</p>
+            <div id="summary-estimate" class="mt-2 space-y-1 text-sm text-gray-300"></div>
+          </div>
+          <div class="summary-card p-4">
+            <p class="text-sm font-semibold text-white" data-i18n="booking.summary.policies">Policies</p>
+            <div id="summary-policies" class="mt-2 text-xs text-gray-400">
+              <p data-i18n="booking.summary.policy.default">Transparent pricing, cancel up to 24h before, and verified cleaners.</p>
+            </div>
+          </div>
+        </div>
+        <button id="confirm-booking" class="btn-primary mt-4 w-full rounded-2xl py-3 text-sm font-semibold" data-i18n="booking.summary.submit">Submit booking draft</button>
+        <p id="draft-feedback" class="mt-2 text-xs text-emerald-300" role="status"></p>
+      </aside>
+    </div>
+  </main>
+
+  <div id="mobile-summary" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm lg:hidden" role="dialog" aria-label="Booking summary">
+    <div class="absolute inset-x-0 bottom-0 rounded-t-3xl border border-white/10 bg-gray-900 p-4 shadow-2xl">
+      <div class="mb-3 flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-gray-400" data-i18n="booking.summary.title">Booking Draft</p>
+          <p class="text-lg font-semibold text-white" data-i18n="booking.summary.subtitle">Quote in progress</p>
+        </div>
+        <button id="close-mobile-summary" class="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300 hover:border-white/30 hover:text-white" data-i18n="booking.summary.close">Close</button>
+      </div>
+      <div class="space-y-3">
+        <div class="summary-card p-3">
+          <p class="text-sm font-semibold text-white" data-i18n="booking.summary.details">Key details</p>
+          <div class="mt-2 space-y-2 text-sm text-gray-300" id="draft-fields-mobile"></div>
+        </div>
+        <div class="summary-card p-3">
+          <p class="text-sm font-semibold text-white" data-i18n="booking.summary.estimate">Estimate</p>
+          <div id="summary-estimate-mobile" class="mt-2 space-y-1 text-sm text-gray-300"></div>
+        </div>
+      </div>
+      <button id="confirm-booking-mobile" class="btn-primary mt-4 w-full rounded-2xl py-3 text-sm font-semibold" data-i18n="booking.summary.submit">Submit booking draft</button>
+      <p id="draft-feedback-mobile" class="mt-2 text-xs text-emerald-300"></p>
+    </div>
+  </div>
+
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>
