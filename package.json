@@ -17,8 +17,9 @@
     "test:stage3": "tsx scripts/test-stage3.ts",
     "check:stage3": "npm run build && npm run test:stage2 && npm run test:stage3 && npm audit --audit-level=moderate",
     "test:stage5": "tsx scripts/test-stage5.ts",
+    "test:production-smoke": "tsx scripts/test-production-smoke.ts",
     "check:stage4": "npm run build && npm run test:stage2 && npm run test:stage3 && npm audit --audit-level=moderate",
-    "check:stage5": "npm run build && npm run test:stage2 && npm run test:stage3 && npm run test:stage5 && npm audit --audit-level=moderate"
+    "check:stage5": "npm run build && npm run test:stage2 && npm run test:stage3 && npm run test:stage5 && npm run test:production-smoke && npm audit --audit-level=moderate"
   },
   "dependencies": {
     "express": "^5.2.1"
