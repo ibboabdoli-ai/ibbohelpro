@@ -7,6 +7,8 @@ create table if not exists public.bookings (
   id uuid primary key default gen_random_uuid(),
   booking_id text unique not null,
   status text not null default 'submitted',
+  customer_user_id text,
+  auth_provider text default 'demo',
   customer_email text,
   customer_name text,
   profile_role text,
@@ -26,6 +28,8 @@ create table if not exists public.provider_applications (
   id uuid primary key default gen_random_uuid(),
   application_id text unique not null,
   status text not null default 'pending' check (status in ('draft', 'pending', 'approved', 'rejected')),
+  provider_user_id text,
+  auth_provider text default 'demo',
   provider_email text,
   provider_name text,
   provider_type text,
@@ -60,17 +64,29 @@ create table if not exists public.job_responses (
   id uuid primary key default gen_random_uuid(),
   job_id text not null,
   response text not null check (response in ('accepted', 'declined')),
+  provider_user_id text,
+  auth_provider text default 'demo',
   provider_email text,
   provider_status text,
   responded_at timestamptz not null default now()
 );
 
+alter table public.bookings add column if not exists customer_user_id text;
+alter table public.bookings add column if not exists auth_provider text default 'demo';
+alter table public.provider_applications add column if not exists provider_user_id text;
+alter table public.provider_applications add column if not exists auth_provider text default 'demo';
+alter table public.job_responses add column if not exists provider_user_id text;
+alter table public.job_responses add column if not exists auth_provider text default 'demo';
+
 create index if not exists idx_bookings_booking_id on public.bookings (booking_id);
+create index if not exists idx_bookings_customer_user_id on public.bookings (customer_user_id);
 create index if not exists idx_provider_applications_application_id on public.provider_applications (application_id);
+create index if not exists idx_provider_applications_provider_user_id on public.provider_applications (provider_user_id);
 create index if not exists idx_provider_applications_status on public.provider_applications (status);
 create index if not exists idx_jobs_job_id on public.jobs (job_id);
 create index if not exists idx_jobs_status on public.jobs (status);
 create index if not exists idx_job_responses_job_id on public.job_responses (job_id);
+create index if not exists idx_job_responses_provider_user_id on public.job_responses (provider_user_id);
 
 -- Optional seed jobs for Stage 3 demo
 insert into public.jobs (job_id, status, title, location, budget, start_time, category, description)
@@ -85,3 +101,4 @@ on conflict (job_id) do nothing;
 -- 2. Keep SUPABASE_SERVICE_ROLE_KEY only in serverless env vars, never in frontend code.
 -- 3. Replace broad service-role writes with user-scoped policies once auth is live.
 -- 4. Replace demo admin code workflow with real authenticated admin identity before production.
+-- 5. Use customer_user_id/provider_user_id as ownership fields for authenticated access policies.
