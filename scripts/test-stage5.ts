@@ -4,6 +4,9 @@ import fs from 'node:fs';
 
 const require = createRequire(import.meta.url);
 const health = require('../api/health.ts');
+const createBooking = require('../api/bookings/create.ts');
+const applyProvider = require('../api/providers/apply.ts');
+const respondJob = require('../api/jobs/respond.ts');
 
 function mockRes() {
   return {
@@ -45,6 +48,11 @@ async function main() {
     assert.ok(envExample.includes(key), `.env.example should document ${key}`);
   });
 
+  const schema = fs.readFileSync('docs/supabase-schema.sql', 'utf8');
+  ['customer_user_id', 'provider_user_id', 'auth_provider'].forEach((field) => {
+    assert.ok(schema.includes(field), `schema should include ${field}`);
+  });
+
   const previous = {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -61,6 +69,42 @@ async function main() {
   assert.ok(missing.body.missingRequired.includes('SUPABASE_URL'));
   assert.ok(missing.body.missingRequired.includes('SUPABASE_SERVICE_ROLE_KEY'));
   assert.ok(missing.body.missingRequired.includes('ADMIN_API_TOKEN'));
+
+  const booking = await invoke(createBooking, {
+    method: 'POST',
+    body: {
+      user: { email: 'Customer@Test.Example', name: 'Customer Test' },
+      draft: { category: 'home', address: 'Södertälje', propertySize: '2 rum', frequency: 'Weekly', dateTime: 'Monday' },
+      estimate: { total: 100 }
+    },
+    headers: {}
+  });
+  assert.equal(booking.statusCode, 200);
+  assert.equal(booking.body.owner, 'demo:customer@test.example');
+
+  const provider = await invoke(applyProvider, {
+    method: 'POST',
+    body: {
+      user: { email: 'Provider@Test.Example', name: 'Provider Test' },
+      providerData: { type: 'individual', serviceArea: 'Stockholm', categories: ['home'], hourlyRate: '390' }
+    },
+    headers: {}
+  });
+  assert.equal(provider.statusCode, 200);
+  assert.equal(provider.body.owner, 'demo:provider@test.example');
+
+  const jobResponse = await invoke(respondJob, {
+    method: 'POST',
+    body: {
+      user: { email: 'Provider@Test.Example', name: 'Provider Test' },
+      profile: { providerStatus: 'approved' },
+      jobId: 'job-home-weekly-stockholm',
+      response: 'accepted'
+    },
+    headers: {}
+  });
+  assert.equal(jobResponse.statusCode, 200);
+  assert.equal(jobResponse.body.owner, 'demo:provider@test.example');
 
   process.env.SUPABASE_URL = 'https://example.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
