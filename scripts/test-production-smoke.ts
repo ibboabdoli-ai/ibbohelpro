@@ -30,6 +30,7 @@ const requiredSourceFiles = [
   'src/public/sitemap.xml',
   'vercel.json',
   'api/health.ts',
+  'api/profile/upsert.ts',
   'api/bookings/create.ts',
   'api/providers/apply.ts',
   'api/jobs/respond.ts',
@@ -135,6 +136,9 @@ function main() {
     assert.ok(appEntry.includes(entry), `app-entry.ts should import ${entry}`);
   });
 
+  const onboardingFlow = read('src/scripts/onboarding-flow.ts');
+  assert.ok(onboardingFlow.includes('/api/profile/upsert'), 'onboarding flow should sync profile server-side');
+
   const bookingFlow = read('src/scripts/booking-flow.ts');
   assert.ok(bookingFlow.includes('navigator.geolocation'), 'booking flow should request browser location permission only when asked');
   assert.ok(bookingFlow.includes('/api/bookings/create'), 'booking flow should submit to booking API');
@@ -143,7 +147,12 @@ function main() {
 
   const providerFlow = read('src/scripts/provider-onboarding-flow.ts');
   assert.ok(providerFlow.includes('/api/providers/apply'), 'provider onboarding should submit to provider API');
+  assert.ok(providerFlow.includes('/api/profile/upsert'), 'provider onboarding should sync profile server-side');
   assert.ok(providerFlow.includes('next-step'), 'provider onboarding should bind next-step');
+
+  const profileApi = read('api/profile/upsert.ts');
+  assert.ok(profileApi.includes('user_profiles'), 'profile API should upsert into user_profiles');
+  assert.ok(profileApi.includes('on_conflict=user_id'), 'profile API should upsert by user_id');
 
   const viteConfig = read('vite.config.ts');
   htmlFiles.forEach((file) => {
