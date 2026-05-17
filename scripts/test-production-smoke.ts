@@ -10,7 +10,10 @@ const htmlFiles = [
   'src/book.html',
   'src/provider-onboarding.html',
   'src/provider-feed.html',
-  'src/admin.html'
+  'src/admin.html',
+  'src/privacy.html',
+  'src/terms.html',
+  'src/rut.html'
 ];
 
 const requiredSourceFiles = [
@@ -65,7 +68,18 @@ function main() {
     assertNotContains(file, 'provider-stage3.js');
   });
 
-  ['src/index.html', 'src/login.html', 'src/register.html', 'src/onboarding.html', 'src/book.html', 'src/provider-onboarding.html', 'src/provider-feed.html'].forEach((file) => {
+  [
+    'src/index.html',
+    'src/login.html',
+    'src/register.html',
+    'src/onboarding.html',
+    'src/book.html',
+    'src/provider-onboarding.html',
+    'src/provider-feed.html',
+    'src/privacy.html',
+    'src/terms.html',
+    'src/rut.html'
+  ].forEach((file) => {
     assertContains(file, './scripts/app-entry.ts');
   });
 
@@ -78,6 +92,13 @@ function main() {
   assertContains('src/index.html', 'Verifierade städare');
   assertContains('src/index.html', 'GDPR');
   assertContains('src/index.html', 'Få pris & tillgänglighet');
+
+  assertContains('src/privacy.html', 'Integritetspolicy');
+  assertContains('src/privacy.html', 'Platsdata');
+  assertContains('src/terms.html', 'Allmänna villkor');
+  assertContains('src/terms.html', 'Avbokning');
+  assertContains('src/rut.html', 'RUT-avdrag');
+  assertContains('src/rut.html', 'preliminärt RUT-estimat');
 
   assertContains('src/book.html', 'start-booking');
   assertContains('src/book.html', 'chat-stream');
