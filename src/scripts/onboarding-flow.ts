@@ -42,6 +42,14 @@ function setOnboardingError(message = '') {
   setLabel('onboarding-error', message);
 }
 
+function setContinueBusy(isBusy: boolean) {
+  const button = document.getElementById('continue-onboarding') as HTMLButtonElement | null;
+  if (!button) return;
+  button.disabled = isBusy;
+  button.classList.toggle('opacity-60', isBusy);
+  button.classList.toggle('cursor-wait', isBusy);
+}
+
 function setActive(buttons: Element[], activeButton: Element | null) {
   buttons.forEach((button) => {
     const isActive = button === activeButton;
@@ -76,6 +84,23 @@ function saveBooking(update: Record<string, unknown>) {
   const next = { ...current, ...update };
   saveJSON(onboardingStorageKeys.booking, next);
   return next;
+}
+
+async function syncProfile(user: CleanAIUser, profile: Record<string, unknown>) {
+  try {
+    const response = await fetch('/api/profile/upsert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user, profile })
+    });
+    if (!response.ok) throw new Error(`Profile sync failed: ${response.status}`);
+    const payload = await response.json().catch(() => null);
+    if (payload?.profile) saveProfile(payload.profile);
+    return payload;
+  } catch (error) {
+    console.warn('Profile sync skipped; local onboarding state is still saved.', error);
+    return null;
+  }
 }
 
 function updateTracker(role: string, category: string) {
@@ -136,10 +161,12 @@ function initOnboardingFlow() {
     });
   });
 
-  continueButton?.addEventListener('click', () => {
+  continueButton?.addEventListener('click', async () => {
     if (selectedRole === 'provider') {
-      saveUser({ role: 'provider' });
-      saveProfile({ role: 'provider', onboardingComplete: false, providerStatus: 'draft' });
+      setContinueBusy(true);
+      const nextUser = saveUser({ role: 'provider' });
+      const nextProfile = saveProfile({ role: 'provider', onboardingComplete: false, providerStatus: 'draft' });
+      await syncProfile(nextUser, nextProfile);
       window.location.href = '/provider-onboarding.html';
       return;
     }
@@ -149,9 +176,11 @@ function initOnboardingFlow() {
       return;
     }
 
-    saveUser({ role: 'customer' });
-    saveProfile({ role: 'customer', onboardingComplete: true, preferredCategory: selectedCategory });
+    setContinueBusy(true);
+    const nextUser = saveUser({ role: 'customer' });
+    const nextProfile = saveProfile({ role: 'customer', onboardingComplete: true, preferredCategory: selectedCategory });
     saveBooking({ category: selectedCategory });
+    await syncProfile(nextUser, nextProfile);
     window.location.href = '/book.html';
   });
 
