@@ -92,6 +92,9 @@ function main() {
   assertContains('src/index.html', 'Verifierade städare');
   assertContains('src/index.html', 'GDPR');
   assertContains('src/index.html', 'Få pris & tillgänglighet');
+  assertContains('src/index.html', '/rut.html');
+  assertContains('src/index.html', '/privacy.html');
+  assertContains('src/index.html', '/terms.html');
 
   assertContains('src/privacy.html', 'Integritetspolicy');
   assertContains('src/privacy.html', 'Platsdata');
