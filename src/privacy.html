@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CleanAI integritetspolicy för platsdata, bokningsdata, leverantörsansökningar och kontaktuppgifter.">
+  <title>CleanAI — Integritet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body class="min-h-screen bg-gray-950 text-white" data-page="legal">
+  <header class="app-shell border-b border-white/5">
+    <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+      <a class="flex items-center gap-3" href="/index.html">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-bold">CAI</div>
+        <div>
+          <p class="text-sm uppercase tracking-[0.2em] text-gray-400">CleanAI</p>
+          <p class="text-sm text-gray-300">Integritet</p>
+        </div>
+      </a>
+      <a class="rounded-full border border-white/10 px-4 py-2 text-sm text-gray-300 hover:border-white/30 hover:text-white" href="/index.html">Till startsidan</a>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-6 py-12">
+    <p class="pill w-fit">GDPR-ready structure</p>
+    <h1 class="mt-3 text-4xl font-bold">Integritetspolicy</h1>
+    <p class="mt-4 max-w-3xl text-gray-300">Den här sidan beskriver hur CleanAI MVP hanterar personuppgifter i bokning, leverantörsansökan och platsbaserad autofyllning. Texten är en produktstruktur och ska juridiskt granskas innan skarp lansering.</p>
+
+    <section class="mt-8 grid gap-4 md:grid-cols-2">
+      <article class="surface-card rounded-3xl p-5"><h2 class="font-semibold text-white">Vilka uppgifter används?</h2><p class="mt-2 text-sm text-gray-300">Namn, e-post, roll, bokningsdetaljer, adress/stad, tjänst, storlek, frekvens, tid och valda tillägg.</p></article>
+      <article class="surface-card rounded-3xl p-5"><h2 class="font-semibold text-white">Platsdata</h2><p class="mt-2 text-sm text-gray-300">Plats hämtas bara när användaren aktivt klickar på “Använd min plats” och godkänner webbläsarens dialog.</p></article>
+      <article class="surface-card rounded-3xl p-5"><h2 class="font-semibold text-white">Leverantörsdata</h2><p class="mt-2 text-sm text-gray-300">Serviceområde, kategorier, tillgänglighet, pris, språk, bio och verifieringsmetadata används för granskning.</p></article>
+      <article class="surface-card rounded-3xl p-5"><h2 class="font-semibold text-white">Lagring</h2><p class="mt-2 text-sm text-gray-300">MVP använder Supabase för serverdata och lokal webblagring för utkast och demo-state. Service role-nycklar får aldrig exponeras i frontend.</p></article>
+    </section>
+
+    <section class="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6">
+      <h2 class="text-2xl font-semibold">Användarens kontroll</h2>
+      <ul class="mt-4 list-disc list-inside space-y-2 text-sm text-gray-300">
+        <li>Användaren kan neka platsdelning och skriva adress manuellt.</li>
+        <li>Utkast i webbläsaren kan raderas genom att tömma localStorage.</li>
+        <li>Produktion ska ha rutiner för export, rättelse och radering av personuppgifter.</li>
+        <li>Adminåtkomst ska skyddas med serverbaserad behörighet, inte bara frontend.</li>
+      </ul>
+    </section>
+
+    <section class="mt-8 rounded-3xl border border-amber-300/20 bg-amber-500/10 p-6 text-sm text-amber-100">
+      <p class="font-semibold text-white">Production note</p>
+      <p class="mt-2">Innan lansering: lägg till organisationsnummer, kontaktväg, personuppgiftsansvarig, lagringsperioder, biträden, cookie-information och juridiskt godkänd text.</p>
+    </section>
+  </main>
+
+  <script type="module" src="./scripts/app-entry.ts"></script>
+</body>
+</html>
