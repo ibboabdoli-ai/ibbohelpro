@@ -14,6 +14,21 @@ function asText(value, max = 500) {
   return String(value ?? '').trim().slice(0, max);
 }
 
+function normalizeEmail(value) {
+  return asText(value, 180).toLowerCase();
+}
+
+function demoUserId(user = {}) {
+  const explicit = asText(user.id || user.userId || user.sub, 180);
+  if (explicit) return explicit;
+  const email = normalizeEmail(user.email);
+  return email ? `demo:${email}` : '';
+}
+
+function authProvider(user = {}) {
+  return asText(user.authProvider || user.provider || 'demo', 80) || 'demo';
+}
+
 function buildReference(prefix = 'PRV') {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -67,6 +82,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
 
   const body = req.body || {};
+  const user = body.user || {};
   const providerData = cleanProviderData(body.providerData);
   if (!providerData.serviceArea || !providerData.hourlyRate) {
     return send(res, 400, { error: 'Missing required provider fields: service area and hourly rate.' });
@@ -77,8 +93,10 @@ module.exports = async function handler(req, res) {
   const record = {
     application_id: applicationId,
     status: 'pending',
-    provider_email: asText(body.user?.email, 180),
-    provider_name: asText(body.user?.name, 180),
+    provider_user_id: demoUserId(user),
+    auth_provider: authProvider(user),
+    provider_email: normalizeEmail(user.email),
+    provider_name: asText(user.name, 180),
     provider_type: providerData.type,
     service_area: providerData.serviceArea,
     categories: providerData.categories,
@@ -99,6 +117,7 @@ module.exports = async function handler(req, res) {
       applicationId: inserted?.application_id || applicationId,
       status: inserted?.status || 'pending',
       submittedAt: inserted?.created_at || record.created_at,
+      owner: inserted?.provider_user_id || record.provider_user_id,
       mode: inserted ? 'supabase' : 'demo-api'
     });
   } catch (error) {
