@@ -31,6 +31,7 @@ const requiredSourceFiles = [
   'vercel.json',
   'api/health.ts',
   'api/profile/upsert.ts',
+  'api/profile/get.ts',
   'api/bookings/create.ts',
   'api/providers/apply.ts',
   'api/jobs/respond.ts',
@@ -150,9 +151,13 @@ function main() {
   assert.ok(providerFlow.includes('/api/profile/upsert'), 'provider onboarding should sync profile server-side');
   assert.ok(providerFlow.includes('next-step'), 'provider onboarding should bind next-step');
 
-  const profileApi = read('api/profile/upsert.ts');
-  assert.ok(profileApi.includes('user_profiles'), 'profile API should upsert into user_profiles');
-  assert.ok(profileApi.includes('on_conflict=user_id'), 'profile API should upsert by user_id');
+  const profileUpsertApi = read('api/profile/upsert.ts');
+  assert.ok(profileUpsertApi.includes('user_profiles'), 'profile upsert API should upsert into user_profiles');
+  assert.ok(profileUpsertApi.includes('on_conflict=user_id'), 'profile upsert API should upsert by user_id');
+
+  const profileGetApi = read('api/profile/get.ts');
+  assert.ok(profileGetApi.includes('user_profiles'), 'profile get API should read from user_profiles');
+  assert.ok(profileGetApi.includes('user_id=eq.'), 'profile get API should read by user_id');
 
   const viteConfig = read('vite.config.ts');
   htmlFiles.forEach((file) => {
