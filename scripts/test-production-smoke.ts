@@ -26,6 +26,8 @@ const requiredSourceFiles = [
   'src/scripts/provider-stage3-main.ts',
   'src/scripts/admin-main.ts',
   'src/scripts/rut-calculator.ts',
+  'src/public/robots.txt',
+  'src/public/sitemap.xml',
   'api/health.ts',
   'api/bookings/create.ts',
   'api/providers/apply.ts',
@@ -95,6 +97,10 @@ function main() {
   assertContains('src/index.html', '/rut.html');
   assertContains('src/index.html', '/privacy.html');
   assertContains('src/index.html', '/terms.html');
+  assertContains('src/index.html', 'rel="canonical"');
+  assertContains('src/index.html', 'og:title');
+  assertContains('src/index.html', 'twitter:card');
+  assertContains('src/index.html', 'robots');
 
   assertContains('src/privacy.html', 'Integritetspolicy');
   assertContains('src/privacy.html', 'Platsdata');
@@ -102,6 +108,12 @@ function main() {
   assertContains('src/terms.html', 'Avbokning');
   assertContains('src/rut.html', 'RUT-avdrag');
   assertContains('src/rut.html', 'preliminärt RUT-estimat');
+
+  assertContains('src/public/robots.txt', 'User-agent');
+  assertContains('src/public/robots.txt', 'Allow: /');
+  assertContains('src/public/sitemap.xml', '<urlset');
+  assertContains('src/public/sitemap.xml', 'https://ibbohelpro.vercel.app/');
+  assertContains('src/public/sitemap.xml', 'https://ibbohelpro.vercel.app/rut.html');
 
   assertContains('src/book.html', 'start-booking');
   assertContains('src/book.html', 'chat-stream');
