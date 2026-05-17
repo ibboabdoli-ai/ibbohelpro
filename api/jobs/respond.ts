@@ -14,6 +14,21 @@ function asText(value, max = 500) {
   return String(value ?? '').trim().slice(0, max);
 }
 
+function normalizeEmail(value) {
+  return asText(value, 180).toLowerCase();
+}
+
+function demoUserId(user = {}) {
+  const explicit = asText(user.id || user.userId || user.sub, 180);
+  if (explicit) return explicit;
+  const email = normalizeEmail(user.email);
+  return email ? `demo:${email}` : '';
+}
+
+function authProvider(user = {}) {
+  return asText(user.authProvider || user.provider || 'demo', 80) || 'demo';
+}
+
 async function insertSupabase(record) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -40,6 +55,7 @@ module.exports = async function handler(req, res) {
 
   const response = asText(req.body?.response, 40);
   const jobId = asText(req.body?.jobId, 120);
+  const user = req.body?.user || {};
   if (!jobId || !['accepted', 'declined'].includes(response)) {
     return send(res, 400, { error: 'Invalid job response.' });
   }
@@ -47,14 +63,22 @@ module.exports = async function handler(req, res) {
   const record = {
     job_id: jobId,
     response,
-    provider_email: asText(req.body?.user?.email, 180),
+    provider_user_id: demoUserId(user),
+    auth_provider: authProvider(user),
+    provider_email: normalizeEmail(user.email),
     provider_status: asText(req.body?.profile?.providerStatus, 80),
     responded_at: new Date().toISOString()
   };
 
   try {
     const inserted = await insertSupabase(record);
-    return send(res, 200, { ok: true, mode: inserted ? 'supabase' : 'demo-api', response, jobId });
+    return send(res, 200, {
+      ok: true,
+      mode: inserted ? 'supabase' : 'demo-api',
+      response,
+      jobId,
+      owner: inserted?.provider_user_id || record.provider_user_id
+    });
   } catch (error) {
     return send(res, 502, { error: error.message || 'Job response failed' });
   }
