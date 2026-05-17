@@ -59,6 +59,25 @@ function status(message = '', error = false) {
   if (err) err.textContent = error ? message : '';
 }
 
+async function syncProviderProfile(update: Record<string, unknown>) {
+  const user = readJSON<Record<string, unknown>>(userKey, {});
+  const nextProfile = setProfile({ role: 'provider', ...update });
+  try {
+    const response = await fetch('/api/profile/upsert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user, profile: nextProfile })
+    });
+    if (!response.ok) throw new Error(`Profile sync failed: ${response.status}`);
+    const payload = await response.json().catch(() => null);
+    if (payload?.profile) setProfile(payload.profile);
+    return payload;
+  } catch (error) {
+    console.warn('Provider profile sync skipped; local state is still saved.', error);
+    return null;
+  }
+}
+
 function collectDraft(): ProviderDraft {
   const form = formEl();
   if (!form) return {};
@@ -188,10 +207,11 @@ async function submitProvider() {
   if (button) button.disabled = true;
 
   try {
+    const user = readJSON(userKey, {});
     const response = await fetch('/api/providers/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ providerData: draft, user: readJSON(userKey, {}) })
+      body: JSON.stringify({ providerData: draft, user })
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Provider application failed');
@@ -199,7 +219,7 @@ async function submitProvider() {
     const applications = readJSON<any[]>(providerApplicationsKey, []);
     applications.unshift({ ...draft, status: 'pending', applicationId, submittedAt: new Date().toISOString() });
     saveJSON(providerApplicationsKey, applications.slice(0, 20));
-    setProfile({ providerStatus: 'pending', providerApplicationId: applicationId, providerDraft: draft });
+    await syncProviderProfile({ providerStatus: 'pending', providerApplicationId: applicationId, providerDraft: draft, onboardingComplete: true });
     renderSideStatus();
     status(`Submitted for review. Application ID: ${applicationId}`);
   } catch (error) {
