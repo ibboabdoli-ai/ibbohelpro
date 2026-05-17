@@ -3,6 +3,21 @@
 
 create extension if not exists pgcrypto;
 
+create table if not exists public.user_profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id text unique not null,
+  auth_provider text not null default 'demo',
+  email text,
+  full_name text,
+  role text not null default 'customer' check (role in ('customer', 'provider', 'admin')),
+  preferred_category text,
+  provider_status text,
+  onboarding_complete boolean default false,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.bookings (
   id uuid primary key default gen_random_uuid(),
   booking_id text unique not null,
@@ -71,6 +86,12 @@ create table if not exists public.job_responses (
   responded_at timestamptz not null default now()
 );
 
+alter table public.user_profiles add column if not exists auth_provider text not null default 'demo';
+alter table public.user_profiles add column if not exists preferred_category text;
+alter table public.user_profiles add column if not exists provider_status text;
+alter table public.user_profiles add column if not exists onboarding_complete boolean default false;
+alter table public.user_profiles add column if not exists metadata jsonb default '{}'::jsonb;
+alter table public.user_profiles add column if not exists updated_at timestamptz not null default now();
 alter table public.bookings add column if not exists customer_user_id text;
 alter table public.bookings add column if not exists auth_provider text default 'demo';
 alter table public.provider_applications add column if not exists provider_user_id text;
@@ -78,6 +99,9 @@ alter table public.provider_applications add column if not exists auth_provider 
 alter table public.job_responses add column if not exists provider_user_id text;
 alter table public.job_responses add column if not exists auth_provider text default 'demo';
 
+create index if not exists idx_user_profiles_user_id on public.user_profiles (user_id);
+create index if not exists idx_user_profiles_email on public.user_profiles (email);
+create index if not exists idx_user_profiles_role on public.user_profiles (role);
 create index if not exists idx_bookings_booking_id on public.bookings (booking_id);
 create index if not exists idx_bookings_customer_user_id on public.bookings (customer_user_id);
 create index if not exists idx_provider_applications_application_id on public.provider_applications (application_id);
@@ -101,4 +125,4 @@ on conflict (job_id) do nothing;
 -- 2. Keep SUPABASE_SERVICE_ROLE_KEY only in serverless env vars, never in frontend code.
 -- 3. Replace broad service-role writes with user-scoped policies once auth is live.
 -- 4. Replace demo admin code workflow with real authenticated admin identity before production.
--- 5. Use customer_user_id/provider_user_id as ownership fields for authenticated access policies.
+-- 5. Use user_id/customer_user_id/provider_user_id as ownership fields for authenticated access policies.
