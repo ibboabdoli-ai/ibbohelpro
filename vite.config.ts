@@ -20,7 +20,10 @@ export default defineConfig({
         book: resolve(__dirname, 'src/book.html'),
         providerOnboarding: resolve(__dirname, 'src/provider-onboarding.html'),
         providerFeed: resolve(__dirname, 'src/provider-feed.html'),
-        admin: resolve(__dirname, 'src/admin.html')
+        admin: resolve(__dirname, 'src/admin.html'),
+        privacy: resolve(__dirname, 'src/privacy.html'),
+        terms: resolve(__dirname, 'src/terms.html'),
+        rut: resolve(__dirname, 'src/rut.html')
       }
     }
   }
