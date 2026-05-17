@@ -28,6 +28,7 @@ const requiredSourceFiles = [
   'src/scripts/rut-calculator.ts',
   'src/public/robots.txt',
   'src/public/sitemap.xml',
+  'vercel.json',
   'api/health.ts',
   'api/bookings/create.ts',
   'api/providers/apply.ts',
@@ -114,6 +115,12 @@ function main() {
   assertContains('src/public/sitemap.xml', '<urlset');
   assertContains('src/public/sitemap.xml', 'https://ibbohelpro.vercel.app/');
   assertContains('src/public/sitemap.xml', 'https://ibbohelpro.vercel.app/rut.html');
+
+  assertContains('vercel.json', 'X-Content-Type-Options');
+  assertContains('vercel.json', 'Referrer-Policy');
+  assertContains('vercel.json', 'X-Frame-Options');
+  assertContains('vercel.json', 'Permissions-Policy');
+  assertContains('vercel.json', 'Strict-Transport-Security');
 
   assertContains('src/book.html', 'start-booking');
   assertContains('src/book.html', 'chat-stream');
