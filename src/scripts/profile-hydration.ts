@@ -1,6 +1,9 @@
-const profileHydrationKeys = {
+const accountHydrationKeys = {
   user: 'cleanai_user',
-  profile: 'cleanai_profile'
+  profile: 'cleanai_profile',
+  bookings: 'cleanai_bookings',
+  providerApplications: 'cleanai_provider_applications',
+  submittedBookingId: 'cleanai_submitted_booking_id'
 };
 
 type StoredUser = {
@@ -12,12 +15,18 @@ type StoredUser = {
   role?: string;
 };
 
+type AccountSnapshot = {
+  profile?: Record<string, unknown>;
+  bookings?: Array<Record<string, unknown>>;
+  providerApplication?: Record<string, unknown> | null;
+};
+
 function readJSON<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch (error) {
-    console.warn('Unable to read local profile state', key, error);
+    console.warn('Unable to read local account state', key, error);
     return fallback;
   }
 }
@@ -33,32 +42,65 @@ function hasUsableIdentity(user: StoredUser | null) {
 }
 
 function mergeProfile(serverProfile: Record<string, unknown>) {
-  const localProfile = readJSON<Record<string, unknown>>(profileHydrationKeys.profile, {});
-  saveJSON(profileHydrationKeys.profile, { ...localProfile, ...serverProfile, hydratedAt: new Date().toISOString() });
+  const localProfile = readJSON<Record<string, unknown>>(accountHydrationKeys.profile, {});
+  saveJSON(accountHydrationKeys.profile, { ...localProfile, ...serverProfile, hydratedAt: new Date().toISOString() });
 }
 
-async function hydrateProfileFromServer() {
-  const user = readJSON<StoredUser | null>(profileHydrationKeys.user, null);
+function mergeBookings(bookings: Array<Record<string, unknown>>) {
+  if (!Array.isArray(bookings)) return;
+  const local = readJSON<Array<Record<string, unknown>>>(accountHydrationKeys.bookings, []);
+  const byId = new Map<string, Record<string, unknown>>();
+  [...bookings, ...local].forEach((booking) => {
+    const id = String(booking.bookingId || booking.booking_id || '').trim();
+    if (id && !byId.has(id)) byId.set(id, booking);
+  });
+  const merged = Array.from(byId.values()).slice(0, 20);
+  saveJSON(accountHydrationKeys.bookings, merged);
+  if (merged[0]?.bookingId && !localStorage.getItem(accountHydrationKeys.submittedBookingId)) {
+    localStorage.setItem(accountHydrationKeys.submittedBookingId, String(merged[0].bookingId));
+  }
+}
+
+function mergeProviderApplication(application: Record<string, unknown> | null | undefined) {
+  if (!application) return;
+  const local = readJSON<Array<Record<string, unknown>>>(accountHydrationKeys.providerApplications, []);
+  const applicationId = String(application.applicationId || application.application_id || '').trim();
+  const filtered = applicationId ? local.filter((item) => String(item.applicationId || item.application_id || '') !== applicationId) : local;
+  saveJSON(accountHydrationKeys.providerApplications, [application, ...filtered].slice(0, 20));
+  mergeProfile({
+    providerStatus: application.status,
+    providerApplicationId: applicationId
+  });
+}
+
+function mergeSnapshot(snapshot: AccountSnapshot) {
+  if (snapshot.profile) mergeProfile(snapshot.profile);
+  if (snapshot.bookings) mergeBookings(snapshot.bookings);
+  mergeProviderApplication(snapshot.providerApplication);
+}
+
+async function hydrateAccountSnapshot() {
+  const user = readJSON<StoredUser | null>(accountHydrationKeys.user, null);
   if (!hasUsableIdentity(user)) return;
 
   try {
-    const response = await fetch('/api/profile/get', {
+    const response = await fetch('/api/account/snapshot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user })
     });
-    if (!response.ok) throw new Error(`Profile hydration failed: ${response.status}`);
+    if (!response.ok) throw new Error(`Account snapshot hydration failed: ${response.status}`);
     const payload = await response.json().catch(() => null);
-    if (payload?.profile) mergeProfile(payload.profile);
+    if (payload?.ok) mergeSnapshot(payload);
   } catch (error) {
-    console.warn('Profile hydration skipped; local state remains active.', error);
+    console.warn('Account snapshot hydration skipped; local state remains active.', error);
   }
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', hydrateProfileFromServer, { once: true });
+  document.addEventListener('DOMContentLoaded', hydrateAccountSnapshot, { once: true });
 } else {
-  hydrateProfileFromServer();
+  hydrateAccountSnapshot();
 }
 
-export { hydrateProfileFromServer };
+export { hydrateAccountSnapshot };
