@@ -140,11 +140,19 @@ function main() {
     assert.ok(appEntry.includes(entry), `app-entry.ts should import ${entry}`);
   });
 
+  const appMain = read('src/scripts/app-main.ts');
+  assert.ok(appMain.includes('expiresAt'), 'auth token should include expiresAt');
+  assert.ok(appMain.includes('clearSessionCaches'), 'logout should clear session-scoped caches');
+  assert.ok(appMain.includes('session_expired'), 'app auth should handle expired sessions');
+  assert.ok(appMain.includes('logged_out=true'), 'logout should redirect with logged out marker');
+
   const protectedRoutes = read('src/scripts/protected-routes.ts');
   assert.ok(protectedRoutes.includes('/book.html'), 'protected route guard should protect booking page');
   assert.ok(protectedRoutes.includes('/provider-onboarding.html'), 'protected route guard should protect provider onboarding');
   assert.ok(protectedRoutes.includes('/provider-feed.html'), 'protected route guard should protect provider feed');
   assert.ok(protectedRoutes.includes('/login.html?'), 'protected route guard should redirect to login');
+  assert.ok(protectedRoutes.includes('expiresAt'), 'protected route guard should check session expiry');
+  assert.ok(protectedRoutes.includes('session_expired'), 'protected route guard should redirect expired sessions');
 
   const snapshotApi = read('api/account/snapshot.ts');
   assert.ok(snapshotApi.includes('customer_user_id=eq.'), 'snapshot API should scope bookings by customer_user_id');

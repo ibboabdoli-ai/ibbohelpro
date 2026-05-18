@@ -4,6 +4,14 @@ type StoredUser = {
   role?: string;
 };
 
+type AuthToken = {
+  issuedAt?: string;
+  expiresAt?: string;
+  role?: string;
+};
+
+const userKey = 'cleanai_user';
+const authKey = 'cleanai_auth_token';
 const protectedPaths = new Set([
   '/onboarding.html',
   '/book.html',
@@ -15,18 +23,36 @@ const adminPaths = new Set([
   '/admin.html'
 ]);
 
-function readUser(): StoredUser | null {
+function readJSON<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem('cleanai_user');
-    return raw ? JSON.parse(raw) : null;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
   } catch {
-    return null;
+    return fallback;
   }
+}
+
+function readUser(): StoredUser | null {
+  return readJSON<StoredUser | null>(userKey, null);
+}
+
+function readAuth(): AuthToken | null {
+  return readJSON<AuthToken | null>(authKey, null);
 }
 
 function hasValidDemoSession(user: StoredUser | null) {
   const email = String(user?.email || '').trim();
   return Boolean(email && email.includes('@'));
+}
+
+function isExpired(auth: AuthToken | null) {
+  if (!auth?.expiresAt) return false;
+  return Date.now() >= Date.parse(auth.expiresAt);
+}
+
+function clearSessionIdentity() {
+  localStorage.removeItem(userKey);
+  localStorage.removeItem(authKey);
 }
 
 function currentPath() {
@@ -46,9 +72,16 @@ function guardProtectedRoutes() {
   if (!protectedPaths.has(path) && !adminPaths.has(path)) return;
 
   const user = readUser();
+  const auth = readAuth();
   const isLoggedIn = hasValidDemoSession(user);
   if (!isLoggedIn) {
     redirectToLogin('login_required');
+    return;
+  }
+
+  if (isExpired(auth)) {
+    clearSessionIdentity();
+    redirectToLogin('session_expired');
     return;
   }
 
