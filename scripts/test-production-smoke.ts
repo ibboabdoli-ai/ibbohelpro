@@ -20,6 +20,7 @@ const requiredSourceFiles = [
   'src/scripts/app-entry.ts',
   'src/scripts/app-main.ts',
   'src/scripts/session-scope.ts',
+  'src/scripts/protected-routes.ts',
   'src/scripts/profile-hydration.ts',
   'src/scripts/onboarding-flow.ts',
   'src/scripts/booking-flow.ts',
@@ -135,9 +136,15 @@ function main() {
   assertContains('src/admin.html', 'load-applications');
 
   const appEntry = read('src/scripts/app-entry.ts');
-  ['session-scope.ts', 'profile-hydration.ts', 'onboarding-flow.ts', 'booking-flow.ts', 'provider-onboarding-flow.ts', 'rut-calculator.ts', 'app-main.ts'].forEach((entry) => {
+  ['session-scope.ts', 'protected-routes.ts', 'profile-hydration.ts', 'onboarding-flow.ts', 'booking-flow.ts', 'provider-onboarding-flow.ts', 'rut-calculator.ts', 'app-main.ts'].forEach((entry) => {
     assert.ok(appEntry.includes(entry), `app-entry.ts should import ${entry}`);
   });
+
+  const protectedRoutes = read('src/scripts/protected-routes.ts');
+  assert.ok(protectedRoutes.includes('/book.html'), 'protected route guard should protect booking page');
+  assert.ok(protectedRoutes.includes('/provider-onboarding.html'), 'protected route guard should protect provider onboarding');
+  assert.ok(protectedRoutes.includes('/provider-feed.html'), 'protected route guard should protect provider feed');
+  assert.ok(protectedRoutes.includes('/login.html?'), 'protected route guard should redirect to login');
 
   const snapshotApi = read('api/account/snapshot.ts');
   assert.ok(snapshotApi.includes('customer_user_id=eq.'), 'snapshot API should scope bookings by customer_user_id');
