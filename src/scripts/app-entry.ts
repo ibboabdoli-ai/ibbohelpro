@@ -1,4 +1,5 @@
 import './session-scope.ts';
+import './protected-routes.ts';
 import './profile-hydration.ts';
 import './onboarding-flow.ts';
 import './booking-flow.ts';
