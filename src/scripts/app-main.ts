@@ -21,6 +21,20 @@ const storageKeys = {
   jobResponses: 'cleanai_job_responses'
 };
 
+const sessionScopedKeys = [
+  storageKeys.profile,
+  storageKeys.booking,
+  storageKeys.bookings,
+  storageKeys.providerApplications,
+  storageKeys.jobResponses,
+  'cleanai_submitted_booking_id',
+  'cleanai_booking_started',
+  'cleanai_guided_prompt_shown',
+  'cleanai_nlp_memory'
+];
+
+const demoSessionHours = 24;
+
 const api = {
   aiChat: '/api/ai/chat',
   createBooking: '/api/bookings/create',
@@ -62,7 +76,7 @@ function escapeHTML(value) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/\"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
 
@@ -79,15 +93,41 @@ function getAuth() {
   return read(storageKeys.user, null);
 }
 
+function sessionExpiryDate() {
+  return new Date(Date.now() + demoSessionHours * 60 * 60 * 1000).toISOString();
+}
+
 function setAuth(user) {
+  const now = new Date().toISOString();
   save(storageKeys.user, user);
-  save(storageKeys.auth, { issuedAt: new Date().toISOString(), role: user.role });
+  save(storageKeys.auth, { issuedAt: now, expiresAt: sessionExpiryDate(), role: user.role });
+}
+
+function isAuthExpired() {
+  const token = read(storageKeys.auth, null);
+  if (!token?.expiresAt) return false;
+  return Date.now() >= Date.parse(token.expiresAt);
+}
+
+function clearSessionCaches() {
+  sessionScopedKeys.forEach((key) => localStorage.removeItem(key));
+}
+
+function clearAuthSession() {
+  clearSessionCaches();
+  localStorage.removeItem(storageKeys.user);
+  localStorage.removeItem(storageKeys.auth);
 }
 
 function requireAuth(expectedRoles) {
   const user = getAuth();
   if (!user) {
-    window.location.href = '/login.html';
+    window.location.href = '/login.html?reason=login_required';
+    return null;
+  }
+  if (isAuthExpired()) {
+    clearAuthSession();
+    window.location.href = '/login.html?reason=session_expired';
     return null;
   }
   if (expectedRoles && !expectedRoles.includes(user.role)) {
@@ -98,9 +138,8 @@ function requireAuth(expectedRoles) {
 }
 
 function logout() {
-  localStorage.removeItem(storageKeys.user);
-  localStorage.removeItem(storageKeys.auth);
-  window.location.href = '/index.html';
+  clearAuthSession();
+  window.location.href = '/index.html?logged_out=true';
 }
 
 function getProfile() {
