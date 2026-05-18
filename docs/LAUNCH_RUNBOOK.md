@@ -50,10 +50,20 @@ docs/supabase-schema.sql
 Required tables:
 
 ```txt
+user_profiles
 bookings
 provider_applications
 jobs
 job_responses
+```
+
+Ownership fields used for account isolation:
+
+```txt
+user_profiles.user_id
+bookings.customer_user_id
+provider_applications.provider_user_id
+job_responses.provider_user_id
 ```
 
 After a booking submit, verify:
@@ -150,6 +160,8 @@ security headers
 - Submit booking.
 - Verify only one booking is created after repeated clicks.
 - Confirm booking row exists in Supabase.
+- Confirm `customer_user_id` is set.
+- Confirm a different customer identity does not receive this booking in `/api/account/snapshot`.
 
 ### Provider onboarding
 
@@ -159,11 +171,13 @@ security headers
 - Save draft persists data.
 - Submit for review.
 - Confirm provider application row exists in Supabase.
+- Confirm `provider_user_id` is set.
 
 ### Provider feed
 
 - Feed remains locked until approval.
 - Approved status should unlock job feed when backend status returns approved.
+- `/api/account/snapshot` should hydrate the provider's latest application/status.
 
 ### Admin
 
@@ -172,7 +186,52 @@ security headers
 - Application list endpoint works when token is valid.
 - Approval/rejection endpoints update provider application status.
 
-## 7. Security Headers
+## 7. Account Snapshot Verification
+
+Endpoint:
+
+```txt
+/api/account/snapshot
+```
+
+Purpose:
+
+```txt
+Hydrate server-backed account state in one request.
+```
+
+Expected response sections:
+
+```txt
+profile
+bookings
+providerApplication
+```
+
+Verification checklist:
+
+```txt
+1. Submit a customer booking.
+2. Call account snapshot as that customer.
+3. Confirm the booking appears in `bookings`.
+4. Call account snapshot as another customer.
+5. Confirm the booking does not appear.
+6. Submit a provider application.
+7. Call account snapshot as that provider.
+8. Confirm `providerApplication` includes the latest status.
+9. Confirm frontend local caches are hydrated:
+   - cleanai_profile
+   - cleanai_bookings
+   - cleanai_provider_applications
+```
+
+Security rule:
+
+```txt
+The service-role key must remain server-only and must never appear in frontend code or network payloads.
+```
+
+## 8. Security Headers
 
 Configured in `vercel.json`:
 
@@ -186,7 +245,7 @@ Strict-Transport-Security
 
 Do not add a strict Content-Security-Policy until Google Fonts, Nominatim reverse geocoding, Vercel scripts, and any future analytics domains are mapped and tested.
 
-## 8. SEO Basics
+## 9. SEO Basics
 
 Production SEO files:
 
@@ -212,7 +271,7 @@ https://ibbohelpro.vercel.app
 
 to the final domain.
 
-## 9. Known Production Gaps
+## 10. Known Production Gaps
 
 Before real public launch, complete these items:
 
@@ -229,7 +288,7 @@ Before real public launch, complete these items:
 10. Update sitemap and canonical URLs after custom domain is attached.
 ```
 
-## 10. Rollback
+## 11. Rollback
 
 If production breaks:
 
@@ -239,7 +298,7 @@ If production breaks:
 4. Verify `/api/health`.
 5. Run live smoke test.
 
-## 11. Current Launch Readiness
+## 12. Current Launch Readiness
 
 Current status:
 
@@ -257,4 +316,5 @@ SEO basics: done
 Security headers: done
 Live smoke script: done
 Manual GitHub live smoke workflow: done
+Account snapshot hydration: in account-isolation-batch
 ```

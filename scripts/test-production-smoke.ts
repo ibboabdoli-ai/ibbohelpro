@@ -20,6 +20,7 @@ const requiredSourceFiles = [
   'src/scripts/app-entry.ts',
   'src/scripts/app-main.ts',
   'src/scripts/session-scope.ts',
+  'src/scripts/profile-hydration.ts',
   'src/scripts/onboarding-flow.ts',
   'src/scripts/booking-flow.ts',
   'src/scripts/provider-onboarding-flow.ts',
@@ -30,6 +31,7 @@ const requiredSourceFiles = [
   'src/public/sitemap.xml',
   'vercel.json',
   'api/health.ts',
+  'api/account/snapshot.ts',
   'api/profile/upsert.ts',
   'api/profile/get.ts',
   'api/bookings/create.ts',
@@ -133,9 +135,19 @@ function main() {
   assertContains('src/admin.html', 'load-applications');
 
   const appEntry = read('src/scripts/app-entry.ts');
-  ['session-scope.ts', 'onboarding-flow.ts', 'booking-flow.ts', 'provider-onboarding-flow.ts', 'rut-calculator.ts', 'app-main.ts'].forEach((entry) => {
+  ['session-scope.ts', 'profile-hydration.ts', 'onboarding-flow.ts', 'booking-flow.ts', 'provider-onboarding-flow.ts', 'rut-calculator.ts', 'app-main.ts'].forEach((entry) => {
     assert.ok(appEntry.includes(entry), `app-entry.ts should import ${entry}`);
   });
+
+  const snapshotApi = read('api/account/snapshot.ts');
+  assert.ok(snapshotApi.includes('customer_user_id=eq.'), 'snapshot API should scope bookings by customer_user_id');
+  assert.ok(snapshotApi.includes('provider_user_id=eq.'), 'snapshot API should scope provider applications by provider_user_id');
+  assert.ok(snapshotApi.includes('user_profiles'), 'snapshot API should read user profile');
+
+  const profileHydration = read('src/scripts/profile-hydration.ts');
+  assert.ok(profileHydration.includes('/api/account/snapshot'), 'profile hydration should read account snapshot server-side');
+  assert.ok(profileHydration.includes('cleanai_bookings'), 'profile hydration should cache server bookings');
+  assert.ok(profileHydration.includes('cleanai_provider_applications'), 'profile hydration should cache provider application');
 
   const onboardingFlow = read('src/scripts/onboarding-flow.ts');
   assert.ok(onboardingFlow.includes('/api/profile/upsert'), 'onboarding flow should sync profile server-side');
