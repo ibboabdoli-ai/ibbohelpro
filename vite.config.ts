@@ -3,6 +3,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   root: 'src',
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   server: {
     proxy: {
       '/api': 'http://localhost:8787'
