@@ -187,9 +187,16 @@ function main() {
   assert.ok(profileGetApi.includes('user_id=eq.'), 'profile get API should read by user_id');
 
   const viteConfig = read('vite.config.ts');
+  assert.ok(viteConfig.includes("envPrefix: ['VITE_', 'NEXT_PUBLIC_']"), 'vite config should expose only public env prefixes');
   htmlFiles.forEach((file) => {
     assert.ok(viteConfig.includes(path.basename(file)), `vite.config.ts should include ${path.basename(file)}`);
   });
+
+  const envExample = read('.env.example');
+  ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'].forEach((key) => {
+    assert.ok(envExample.includes(key), `.env.example should document ${key}`);
+  });
+  assert.ok(envExample.includes('Do not put the service-role key here.'), '.env.example should warn against exposing service-role key');
 
   console.log('Production smoke tests passed');
 }
